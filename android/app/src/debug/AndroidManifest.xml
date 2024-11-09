@@ -8,10 +8,4 @@
     <!-- Declare that the app requires NFC -->
     <uses-feature android:name="android.hardware.nfc" android:required="true"/>
 
-    <application
-        android:name=".MainApplication"
-        android:label="your_app_name"
-        android:icon="@mipmap/ic_launcher">
-        <!-- Other configurations -->
-    </application>
 </manifest>
