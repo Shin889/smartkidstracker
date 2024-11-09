@@ -2,11 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:smartkidstracker/src/minor_deets/privacy_policy.dart';
 import 'package:smartkidstracker/src/widgets/appbar/profile/details/work_experience.dart';
 import 'package:smartkidstracker/src/widgets/appbar/profile/details/education.dart';
 import 'package:smartkidstracker/src/widgets/appbar/profile/details/places_lived.dart';
 import 'package:smartkidstracker/src/widgets/appbar/profile/details/basic_info.dart';
-import 'package:smartkidstracker/src/minor_deets/privacy_policy.dart';
 
 class UserProfilePage extends StatefulWidget {
   final String firstName;
@@ -157,7 +157,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.blue, Colors.green],
+                    colors: [Colors.purple, Colors.orange],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -193,7 +193,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   title: const Text('Privacy and Security'),
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()),
+                    MaterialPageRoute(builder: (context) => const PrivacyPolicy()),
                   ),
                 ),
                 const Divider(),

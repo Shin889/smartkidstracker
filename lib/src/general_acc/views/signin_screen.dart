@@ -1,57 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:smartkidstracker/src/minor_deets/privacy_policy.dart';
-import 'package:smartkidstracker/src/minor_deets/user_agreement.dart';
-import 'package:smartkidstracker/src/general_acc/presentation/signup_screen.dart';
 import 'package:smartkidstracker/src/general_acc/data_access/auth_controller.dart';
-import 'package:smartkidstracker/src/main_screen.dart';
 import 'package:smartkidstracker/src/widgets/button.dart';
-
-const firebaseOptions = FirebaseOptions(
-  apiKey: "AIzaSyAoxbr2DTijagxq5Dnjb3vm6UCgP3TxTuM",
-  appId: "1:224966435149:android:f9008b6f07107025fbd704",
-  messagingSenderId: "224966435149",
-  projectId: "smartkidstracker-35ac5",
-);
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: firebaseOptions,
-  );
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SmartKidsTracker',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      initialRoute: '/',
-      routes: {
-      '/': (context) => const SignInScreen(),
-      '/signup': (context) => const SignUpScreen(),
-      '/user_agreement': (context) => const UserAgreementPage(),
-      '/privacy_policy': (context) => const PrivacyPolicyPage(),
-      '/main': (context) {
-        final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?; // Change here
-        return MainScreen(
-          firstName: args?['firstName']?.toString() ?? '',
-          lastName: args?['lastName']?.toString() ?? '',
-          section: args?['section']?.toString() ?? '',
-          role: args?['role']?.toString() ?? '',
-        );
-      },
-    },
-
-    );
-  }
-}
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -73,7 +22,7 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  Future<void> _handleSignIn() async {
+Future<void> _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
       try {
         Map result = await _authController.signInWithEmailAndPassword(
@@ -93,7 +42,6 @@ class _SignInScreenState extends State<SignInScreen> {
             },
           );
         } else {
-          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Failed to sign in')),
           );
@@ -199,7 +147,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     child: Text(
                       'Create account >',
                       style: TextStyle(
-                        color: Colors.blue[300],
+                        color: Colors.purple,
                         fontSize: screenWidth * 0.035,
                       ),
                     ),
@@ -232,7 +180,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 child: ElevatedButton(
                   onPressed: () => _authController.handleGoogleSignIn(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[300],
+                    backgroundColor: Colors.purple,
                     shape: const CircleBorder(),
                     padding: const EdgeInsets.all(20),
                   ),
@@ -267,7 +215,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       child: Text(
                         'User Agreement',
                         style: TextStyle(
-                          color: Colors.blue[300],
+                          color: Colors.purple,
                           fontSize: screenWidth * 0.03,
                           fontWeight: FontWeight.bold,
                         ),
@@ -293,7 +241,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       child: Text(
                         'Privacy Policy',
                         style: TextStyle(
-                          color: Colors.blue[300],
+                          color: Colors.purple,
                           fontSize: screenWidth * 0.03,
                           fontWeight: FontWeight.bold,
                         ),

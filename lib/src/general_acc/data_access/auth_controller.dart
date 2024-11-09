@@ -13,61 +13,9 @@ class AuthController {
   Future<void> initializeFirebase() async {
     try {
       await Firebase.initializeApp();
-      print('Firebase Initialized');
+      debugPrint('Firebase Initialized');
     } catch (e) {
-      print('Error initializing Firebase: $e');
-    }
-  }
-
-  Future<bool> checkSchoolExists(String schoolName) async {
-    try {
-      QuerySnapshot schoolQuery = await _firestore
-          .collection('schools')
-          .where('name', isEqualTo: schoolName)
-          .limit(1)
-          .get();
-      return schoolQuery.docs.isNotEmpty;
-    } catch (e) {
-      print('Error checking school existence: $e');
-      return false;
-    }
-  }
-
-Future<List<Map<String, dynamic>>> getPendingChildrenForSchool(String schoolName) async {
-  try {
-    QuerySnapshot childrenQuery = await _firestore
-        .collection('users')
-        .where('role', isEqualTo: 'child')
-        .where('school', isEqualTo: schoolName)
-        .where('status', isEqualTo: 'pending')
-        .get();
-
-    return childrenQuery.docs.map((doc) {
-      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-      data['id'] = doc.id;
-      return data;
-    }).toList();
-  } catch (e) {
-    print('Error getting pending children: $e');
-    rethrow;
-  }
-}
-
-  Future<void> updateChildren(String userId, List<Map<String, dynamic>> pendingChildren) async {
-    try {
-      // Convert each child map to Map<String, String>
-      List<Map<String, String>> children = pendingChildren.map((child) {
-        return child.map((key, value) => MapEntry(key, value.toString())).cast<String, String>();
-      }).toList();
-
-      // Update Firestore with the converted List<Map>
-      await _firestore.collection('users').doc(userId).update({
-        'children': children,
-      });
-      print('User children updated successfully.');
-    } catch (e) {
-      print('Error updating user children: $e');
-      throw Exception('Failed to update user children: $e');
+      debugPrint('Error initializing Firebase: $e');
     }
   }
 
@@ -78,8 +26,8 @@ Future<List<Map<String, dynamic>>> getPendingChildrenForSchool(String schoolName
     required String middleName,
     required String lastName,
     required String phoneNumber,
-    required String school,
-    required String section,
+    String? school,
+    String? section,
     required String role,
   }) async {
     try {
@@ -87,204 +35,182 @@ Future<List<Map<String, dynamic>>> getPendingChildrenForSchool(String schoolName
         email: email,
         password: password,
       );
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
-        'firstName': firstName,
-        'middleName': middleName,
-        'lastName': lastName,
-        'email': email,
-        'phoneNumber': phoneNumber,
-        'school': school,
-        'section': section,
-        'role': role,
-        'status': 'pending',
-      });
-      return userCredential;
-    } catch (e) {
-      print('Error during sign up: $e');
-      throw Exception('Failed to sign up: $e');
-    }
-  }
 
-  Future<void> updateUserChildren(String userId, List<Map<String, dynamic>> children) async {
-    try {
-      await _firestore.collection('users').doc(userId).update({
-        'children': children,
-      });
-    } catch (e) {
-      print('Error updating user children: $e');
-      throw Exception('Failed to update user children: $e');
-    }
-  }
+      if (userCredential.user != null) {
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'firstName': firstName,
+          'middleName': middleName,
+          'lastName': lastName,
+          'email': email,
+          'phoneNumber': phoneNumber,
+          'school': school ?? '',
+          'section': section ?? '',
+          'role': role,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
 
-  Future<void> updateChildStatus(String childId, String status) async {
-    try {
-      await _firestore.collection('children').doc(childId).update({
-        'status': status,
-      });
-      print('Child status updated to $status');
-    } catch (e) {
-      print('Error updating child status: $e');
-      throw Exception('Failed to update child status: $e');
-    }
-  }
-
-  Future<UserCredential> signIn({required String email, required String password}) async {
-    try {
-      UserCredential userCredential = await _firebaseAuth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      print('User signed in: ${userCredential.user!.uid}');
       return userCredential;
     } on FirebaseAuthException catch (e) {
-      print('FirebaseAuthException during sign-in: ${e.code} - ${e.message}');
-      throw Exception('Failed to sign in: ${e.message}');
+      throw Exception('Sign-up failed: ${e.message}');
     } catch (e) {
-      print('Unexpected error during sign-in: $e');
-      throw Exception('An unexpected error occurred during sign-in: $e');
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
-  Future<void> verifyCode(String verificationId, String smsCode) async {
-    try {
-      PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: verificationId,
-        smsCode: smsCode,
-      );
-      await _firebaseAuth.signInWithCredential(credential);
-      print('Phone number verified');
-    } catch (e) {
-      print('Error verifying code: $e');
+  Future<Map<String, dynamic>> signInWithEmailAndPassword(String email, String password) async {
+  try {
+    debugPrint('Attempting to sign in with email: $email');
+    final UserCredential userCredential = await _firebaseAuth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    final User? user = userCredential.user;
+    if (user != null) {
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        final String role = userData['role']?.toLowerCase() ?? '';
+
+        if (role == 'admin') {
+          // Admins can sign in without confirmation checks.
+          return _buildUserResponse(userData, role);
+        } else if (role == 'teacher') {
+          // Check confirmed_teachers for teachers.
+          return await _handleRoleConfirmation(user.uid, userData, 'teacher');
+        } else if (role == 'parent' || role == 'guardian') {
+          // Check confirmed_children for parents/guardians.
+          return await _handleRoleConfirmation(user.uid, userData, 'child');
+        } else {
+          await _firebaseAuth.signOut();
+          return _buildErrorResponse('Invalid user role');
+        }
+      } else {
+        await _firebaseAuth.signOut();
+        return _buildErrorResponse('User data not found');
+      }
+    } else {
+      return _buildErrorResponse('User not found');
     }
+  } catch (e) {
+    debugPrint('Error during sign in: $e');
+    return _buildErrorResponse('Sign-in error: $e');
+  }
+}
+
+Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dynamic> userData, String roleType) async {
+  // Check confirmed collection based on the role type (teacher or child).
+  final String confirmationCollection = 'confirmed_${roleType}s';
+  DocumentSnapshot confirmedDoc = await _firestore.collection(confirmationCollection).doc(uid).get();
+
+  if (confirmedDoc.exists) {
+    return _buildUserResponse(userData, roleType);
+  } else {
+    await _firebaseAuth.signOut();
+    return _buildErrorResponse('User is not confirmed in $confirmationCollection');
+  }
+}
+
+
+  Map<String, dynamic> _buildUserResponse(Map<String, dynamic> userData, String role) {
+    return {
+      'success': true,
+      'firstName': userData['firstName'] ?? '',
+      'lastName': userData['lastName'] ?? '',
+      'section': userData['section'] ?? '',
+      'role': role,
+    };
+  }
+
+  Map<String, dynamic> _buildErrorResponse(String error) {
+    return {'success': false, 'error': error};
   }
 
   Future<void> handleGoogleSignIn(BuildContext context) async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
-	  if (googleUser == null) return; // User canceled the sign-in
-      
-	  final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      if (googleUser == null) return;
 
-	  final AuthCredential credential = GoogleAuthProvider.credential(
-		accessToken: googleAuth.accessToken,
-		idToken: googleAuth.idToken,
-	  );
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
 
-	  final UserCredential userCredential = await _firebaseAuth.signInWithCredential(credential);
-	  final User? user = userCredential.user;
+      final UserCredential userCredential = await _firebaseAuth.signInWithCredential(credential);
+      final User? user = userCredential.user;
 
-	  if (user != null) {
-		Navigator.pushReplacement(
-		  context,
-		  MaterialPageRoute(
-			builder: (context) => MainScreen(
-			  firstName: user.displayName?.split(' ').first ?? '',
-			  lastName: user.displayName?.split(' ').last ?? '',
-			  section: '',
-			  role: '',
-			),
-		  ),
-		);
-	  }
-	} catch (e) {
-	  ScaffoldMessenger.of(context).showSnackBar(
-		SnackBar(content: Text('Error during Google Sign-In: $e')),
-	  );
-	}
+      if (user != null) {
+        DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>;
+          final String role = userData['role'] ?? '';
+
+          if (['admin', 'teacher', 'child'].contains(role.toLowerCase())) {
+            await _navigateToMainScreen(context, userData, role);
+          } else {
+            _showSnackBar(context, 'Invalid user role');
+            await _firebaseAuth.signOut();
+          }
+        } else {
+          _showSnackBar(context, 'User data not found');
+          await _firebaseAuth.signOut();
+        }
+      }
+    } catch (e) {
+      _showSnackBar(context, 'Error during Google Sign-In: $e');
+    }
   }
 
-  Future<List<Map<String, dynamic>>> getPendingChildren() async {
-    try {
-      QuerySnapshot childrenQuery = await _firestore
-          .collection('children')
-          .where('status', isEqualTo: 'pending')
-          .get();
-      
-	  return childrenQuery.docs.map((doc) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
-        return data;
-	  }).toList();
-      
-	} catch (e) {
-	  print('Error getting pending children from Firestore: $e');
-	  return [];
-	}
+  Future<void> _navigateToMainScreen(BuildContext context, Map<String, dynamic> userData, String role) async {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MainScreen(
+          firstName: userData['firstName'] ?? '',
+          lastName: userData['lastName'] ?? '',
+          section: userData['section'] ?? '',
+          role: role,
+        ),
+      ),
+    );
   }
 
-  Future<Map<String, dynamic>> signInWithEmailAndPassword(String email, String password) async {
+  void _showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> signOut() async {
     try {
-       final UserCredential userCredential = await _firebaseAuth.signInWithEmailAndPassword(
-         email: email,
-         password: password,
-       );
+      await _firebaseAuth.signOut();
+      debugPrint('User signed out');
+    } catch (e) {
+      debugPrint('Error signing out: $e');
+      throw Exception('Failed to sign out: $e');
+    }
+  }
 
-       final User? user = userCredential.user;
+  User? getCurrentUser() {
+    return _firebaseAuth.currentUser;
+  }
 
-       if (user != null) {
+  Future<void> updateUserChildren(String userId, List<Map<String, String>> children) async {
+    try {
+      // Reference to the user's document in Firestore
+      DocumentReference userDoc = _firestore.collection('users').doc(userId);
 
-         // Retrieve user data from Firestore or any other source if necessary
-         DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
+      // Update the children field with the provided list
+      await userDoc.update({
+        'children': children,
+      });
 
-         final userData = userDoc.data() as Map<String, dynamic>;
-
-         return {
-           'success': true,
-           'firstName': userData['firstName'] ?? '',
-           'lastName': userData['lastName'] ?? '',
-           'section': userData['section'] ?? '',
-           'role': userData['role'] ?? '',
-         };
-       } else {
-
-         return {'success': false};
-       }
-     } catch (e) {
-
-       return {'success': false, 'error': e.toString()};
-     }
-   }
-
-   Future<void> signOut() async {
-     try {
-       await _firebaseAuth.signOut();
-       print('User signed out');
-     } catch (e) {
-       print('Error signing out: $e');
-       throw Exception('Failed to sign out: $e');
-     }
-   }
-
-   User? getCurrentUser() {
-     return _firebaseAuth.currentUser;
-   }
-
-   // Methods related to OTP
-   Future<void> sendOTP(String contactInfo) async {
-     await _firebaseAuth.verifyPhoneNumber(
-       phoneNumber: contactInfo,
-       verificationCompleted: (PhoneAuthCredential credential) async {
-         await _firebaseAuth.signInWithCredential(credential);
-       },
-       verificationFailed: (FirebaseAuthException e) {
-         throw Exception('Verification failed: ${e.message}');
-       },
-       codeSent: (String verificationId, int? resendToken) {},
-       codeAutoRetrievalTimeout: (String verificationId) {},
-     );
-   }
-
-   Future<bool> verifyOTP(String verificationId, String smsCode) async {
-     try {
-       PhoneAuthCredential credential = PhoneAuthProvider.credential(
-         verificationId: verificationId,
-         smsCode: smsCode,
-       );
-       await _firebaseAuth.signInWithCredential(credential);
-       return true;
-     } catch (e) {
-       return false;
-     }
-   }
+      print('Children data updated for userId: $userId');
+    } catch (e) {
+      print('Error in updateUserChildren: $e');
+      throw Exception('Failed to update children data: $e');
+    }
+  }
 }

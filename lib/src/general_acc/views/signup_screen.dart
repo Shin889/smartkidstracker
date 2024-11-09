@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:smartkidstracker/src/general_acc/data_access/auth_controller.dart';
-import 'package:smartkidstracker/src/general_acc/presentation/signin_screen.dart';
+import 'package:smartkidstracker/src/general_acc/views/signin_screen.dart';
 import 'package:smartkidstracker/src/general_acc/data_access/role_auth/parent_signup.dart';
 
 class SignUpScreen extends StatefulWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class UserAgreementPage extends StatelessWidget {
-  const UserAgreementPage({super.key});
+class UserAgreement extends StatelessWidget {
+  const UserAgreement({super.key});
 
   @override
   Widget build(BuildContext context) {

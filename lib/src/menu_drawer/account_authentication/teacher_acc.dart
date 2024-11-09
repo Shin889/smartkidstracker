@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class TeacherAcc extends StatelessWidget {
+class TeacherAcc extends StatefulWidget {
   const TeacherAcc({super.key});
+
+  @override
+  State<TeacherAcc> createState() => _TeacherAccState();
+}
+
+class _TeacherAccState extends State<TeacherAcc> {
+  // Track the IDs of confirmed teachers to update the UI
+  final Set<String> confirmedTeachers = {};
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('pending_teachers')
-          .where('status', isEqualTo: 'pending')
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -32,9 +39,15 @@ class TeacherAcc extends StatelessWidget {
           separatorBuilder: (context, index) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
             final teacherData = teachers[index].data() as Map<String, dynamic>;
+            final docId = teachers[index].id;
+            final isConfirmed = confirmedTeachers.contains(docId);
+
             return TeacherInfoCard(
               teacherData: teacherData,
-              onConfirm: () => _confirmTeacher(context, teachers[index].id, teacherData),
+              isConfirmed: isConfirmed,
+              onConfirm: isConfirmed
+                  ? null
+                  : () => _confirmTeacher(context, docId, teacherData),
             );
           },
         );
@@ -44,28 +57,16 @@ class TeacherAcc extends StatelessWidget {
 
   Future<void> _confirmTeacher(BuildContext context, String docId, Map<String, dynamic> teacherData) async {
     try {
-      await _showLoadingIndicator(context, () async {
-        await FirestoreOperations.updateTeacherStatus(docId, teacherData);
+      print('Attempting to confirm teacher with ID: $docId');
+      await FirestoreOperations.transferTeacherToConfirmed(docId, teacherData);
+      print('Successfully confirmed teacher with ID: $docId');
+      setState(() {
+        confirmedTeachers.add(docId);
       });
-
       _showSuccessMessage(context, 'Teacher confirmed successfully!');
     } catch (e) {
       print('Error confirming teacher: $e');
       _showErrorMessage(context, e.toString());
-    }
-  }
-
-  Future<void> _showLoadingIndicator(BuildContext context, Future<void> Function() action) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      await action();
-    } finally {
-      Navigator.of(context).pop();
     }
   }
 
@@ -84,12 +85,14 @@ class TeacherAcc extends StatelessWidget {
 
 class TeacherInfoCard extends StatelessWidget {
   final Map<String, dynamic> teacherData;
-  final VoidCallback onConfirm;
+  final bool isConfirmed;
+  final VoidCallback? onConfirm;
 
   const TeacherInfoCard({
     super.key,
     required this.teacherData,
-    required this.onConfirm,
+    required this.isConfirmed,
+    this.onConfirm,
   });
 
   @override
@@ -110,15 +113,20 @@ class TeacherInfoCard extends StatelessWidget {
             _buildInfoRow(Icons.email, teacherData['email'] ?? 'N/A'),
             _buildInfoRow(Icons.phone, teacherData['phoneNumber'] ?? 'N/A'),
             _buildInfoRow(Icons.school, teacherData['school'] ?? 'N/A'),
-            _buildInfoRow(Icons.school, teacherData['section'] ?? 'N/A'),
+            _buildInfoRow(Icons.class_, teacherData['section'] ?? 'N/A'),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                ElevatedButton(
-                  onPressed: onConfirm,
-                  child: const Text('Confirm'),
-                ),
+                isConfirmed
+                    ? const Text(
+                        'Confirmed',
+                        style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                      )
+                    : ElevatedButton(
+                        onPressed: onConfirm,
+                        child: const Text('Confirm'),
+                      ),
               ],
             ),
           ],
@@ -142,14 +150,23 @@ class TeacherInfoCard extends StatelessWidget {
 }
 
 class FirestoreOperations {
-  static Future<void> updateTeacherStatus(String docId, Map<String, dynamic> teacherData) async {
-    try {
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        transaction.update(FirebaseFirestore.instance.collection('pending_teachers').doc(docId), {
-          'status': 'confirmed',
-        });
+  static Future<void> transferTeacherToConfirmed(String docId, Map<String, dynamic> teacherData) async {
+    final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-        transaction.set(FirebaseFirestore.instance.collection('confirmed_teachers').doc(teacherData['userId'] ?? docId), {
+    try {
+      await firestore.runTransaction((transaction) async {
+        // Reference to the pending teacher document
+        final pendingTeacherRef = firestore.collection('pending_teachers').doc(docId);
+        
+        // Check if the pending teacher document exists
+        final pendingDocSnapshot = await transaction.get(pendingTeacherRef);
+        if (!pendingDocSnapshot.exists) {
+          throw Exception('Pending teacher does not exist');
+        }
+
+        // Add teacher to confirmed_teachers collection
+        final confirmedTeacherRef = firestore.collection('confirmed_teachers').doc(teacherData['userId'] ?? docId);
+        transaction.set(confirmedTeacherRef, {
           'firstName': teacherData['firstName'] ?? '',
           'middleName': teacherData['middleName'] ?? '',
           'lastName': teacherData['lastName'] ?? '',
@@ -157,11 +174,15 @@ class FirestoreOperations {
           'phoneNumber': teacherData['phoneNumber'] ?? '',
           'school': teacherData['school'] ?? '',
           'section': teacherData['section'] ?? '',
+          'confirmedAt': FieldValue.serverTimestamp(),
         });
+
+        // Delete the pending teacher document
+        transaction.delete(pendingTeacherRef);
       });
     } catch (e) {
-      print('Error updating teacher status in FirestoreOperations.updateTeacherStatus(): $e');
-      rethrow;
+      print('Error transferring teacher in FirestoreOperations.transferTeacherToConfirmed(): $e');
+      rethrow; // Ensure the error propagates to the calling function
     }
   }
 }

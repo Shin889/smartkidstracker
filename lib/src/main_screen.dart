@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:smartkidstracker/src/general_acc/presentation/signin_screen.dart';
+import 'package:smartkidstracker/src/general_acc/views/signin_screen.dart';
 import 'package:smartkidstracker/src/menu_drawer/account_authentication/pg_acc.dart';
 import 'package:smartkidstracker/src/menu_drawer/account_authentication/teacher_acc.dart';
 import 'package:smartkidstracker/src/menu_drawer/attendance_record/presentation/record.dart';
@@ -7,7 +7,7 @@ import 'package:smartkidstracker/src/menu_drawer/student_record/presentation/rec
 import 'package:smartkidstracker/src/menu_drawer/teacher_record/presentation/record.dart';
 import 'package:smartkidstracker/src/menu_drawer/announcement/announcement.dart';
 import 'package:smartkidstracker/src/minor_deets/about_screen.dart';
-import 'package:smartkidstracker/src/widgets/appbar/profile/userProfile.dart';
+import 'package:smartkidstracker/src/widgets/appbar/profile/user_profile.dart';
 import 'package:smartkidstracker/src/minor_deets/help_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -43,15 +43,15 @@ class _MainScreenState extends State<MainScreen> {
   void _initializeScreens() {
   _screens = [
     Announcement(selectedRole: widget.role),
-    if (widget.role == 'Admin') ...[
+    if (widget.role == 'admin') ...[
       const TeacherAcc(),
       const StudentRecords(),
       const TeacherRecordScreen(),
-    ] else if (widget.role == 'Teacher') ...[
+    ] else if (widget.role == 'teacher') ...[
       const StudentRecords(),
       PgAccScreen(childName: 'Child Name', userRole: widget.role, schoolName: '', section: '',),
     ],
-    const AttendanceScreen(),
+    AttendanceScreen(userRole: '', section: '',),
     const AboutScreen(),
   ];
 }
@@ -129,48 +129,94 @@ class _MainScreenState extends State<MainScreen> {
       body: _screens[_selectedIndex],
     );
   }
-
-  Widget _buildDrawer(BuildContext context) {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: <Widget>[
-          DrawerHeader(
-            decoration: BoxDecoration(color: Colors.blue.withOpacity(0.3)),
-            child: const Text(
-              'Smartkids Tracker',
-              style: TextStyle(fontSize: 32, color: Colors.white),
+Widget _buildDrawer(BuildContext context) {
+  return Drawer(
+    child: Column(
+      children: <Widget>[
+        Container(
+          height: 200,
+          decoration: BoxDecoration(
+            color: Colors.blue,
+            image: DecorationImage(
+              image: AssetImage('assets/image/drawer_header_bg.jpg'),
+              fit: BoxFit.cover,
             ),
           ),
-          _buildDrawerItem(
-            icon: Icons.announcement,
-            title: 'Announcement',
-            index: 0,
+          child: Stack(
+            children: [
+              Positioned(
+                bottom: 20,
+                left: 20,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Smartkids Tracker',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      '${widget.firstName} ${widget.lastName}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      widget.role,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          ..._buildRoleSpecificItems(),
-          _buildDrawerItem(
-            icon: Icons.calendar_today,
-            title: 'Attendance Record',
-            index: _screens.length - 2,
+        ),
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: <Widget>[
+              _buildDrawerItem(
+                icon: Icons.announcement,
+                title: 'Announcement',
+                index: 0,
+              ),
+              ..._buildRoleSpecificItems(),
+              _buildDrawerItem(
+                icon: Icons.calendar_today,
+                title: 'Attendance Record',
+                index: _screens.length - 2,
+              ),
+              _buildDrawerItem(
+                icon: Icons.info,
+                title: 'About',
+                index: _screens.length - 1,
+              ),
+              Divider(),
+              _buildDrawerItem(
+                icon: Icons.exit_to_app,
+                title: 'Sign Out',
+                onTap: () => _showSignoutConfirmationDialog(context),
+                color: Colors.red,
+              ),
+            ],
           ),
-          _buildDrawerItem(
-            icon: Icons.info,
-            title: 'About',
-            index: _screens.length - 1,
-          ),
-          _buildDrawerItem(
-            icon: Icons.exit_to_app,
-            title: 'Sign Out',
-            onTap: () => _showSignoutConfirmationDialog(context),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   List<Widget> _buildRoleSpecificItems() {
     switch (widget.role) {
-      case 'Admin':
+      case 'admin':
         return [
           _buildDrawerItem(
             icon: Icons.lock,
@@ -188,7 +234,7 @@ class _MainScreenState extends State<MainScreen> {
             index: 3,
           ),
         ];
-      case 'Teacher':
+      case 'teacher':
         return [
           _buildDrawerItem(
             icon: Icons.lock,
@@ -201,7 +247,7 @@ class _MainScreenState extends State<MainScreen> {
             index: 1,
           ),
         ];
-      case 'Parent or Guardian':
+      case 'parent or guardian':
         return [
           _buildDrawerItem(
             icon: Icons.child_care,
@@ -215,22 +261,28 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildDrawerItem({
-    required IconData icon,
-    required String title,
-    int? index,
-    VoidCallback? onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      onTap: () {
-        if (onTap != null) {
-          onTap();
-        } else if (index != null) {
-          _onItemTapped(index, title);
-          Navigator.pop(context); // Close the drawer
-        }
-      },
-    );
-  }
+  required IconData icon,
+  required String title,
+  int? index,
+  VoidCallback? onTap,
+  Color color = Colors.black87,
+}) {
+  return ListTile(
+    leading: Icon(icon, color: color),
+    title: Text(
+      title,
+      style: TextStyle(color: color, fontSize: 16),
+    ),
+    onTap: () {
+      if (onTap != null) {
+        onTap();
+      } else if (index != null) {
+        _onItemTapped(index, title);
+        Navigator.pop(context); // Close the drawer
+      }
+    },
+    dense: true,
+    visualDensity: VisualDensity.compact,
+  );
+}
 }
