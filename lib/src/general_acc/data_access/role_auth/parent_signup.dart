@@ -137,17 +137,24 @@ class _ParentSignUpScreenState extends State<ParentSignUpScreen> {
   }
 
   Future<void> savePendingChildData({
-    required String email,
-    required String phoneNumber,
-    required List<Map<String, String>> children,
-  }) async {
-    // Implement your logic to save data to `pending_children` collection here.
-    print('Saving pending data for $email with children details: $children');
+  required String email,
+  required String phoneNumber,
+  required List<Map<String, String>> children,
+}) async {
+  // Get the user ID of the current authenticated user
+  User? currentUser = FirebaseAuth.instance.currentUser;
+  if (currentUser == null) {
+    throw Exception('User not authenticated');
+  }
 
-    // Example call to your AuthController or database service:
-    await _authController.updateUserChildren(
-      FirebaseAuth.instance.currentUser!.uid,
-      children,
+  String userId = currentUser.uid;
+
+  // Call the `updateUserChildren` method with all required arguments
+  await _authController.updateUserChildren(
+    userId,
+    email,
+    phoneNumber,
+    children,
     );
   }
 }

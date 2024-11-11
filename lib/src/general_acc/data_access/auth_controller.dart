@@ -9,6 +9,9 @@ class AuthController {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  
+  get phoneNumber => null;
+  get email => null;
 
   Future<void> initializeFirebase() async {
     try {
@@ -197,13 +200,15 @@ Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dyn
     return _firebaseAuth.currentUser;
   }
 
-  Future<void> updateUserChildren(String userId, List<Map<String, String>> children) async {
+  Future<void> updateUserChildren(String userId, String email, String phoneNumber, List<Map<String, String>> children) async {
   try {
-    // Save the children data to a `pending_children` collection
+    // Reference to the `pending_children` collection
     CollectionReference pendingChildren = _firestore.collection('pending_children');
 
     for (var child in children) {
       await pendingChildren.add({
+        'email': email,
+        'phoneNumber': phoneNumber,
         'userId': userId,
         'childName': child['name'],
         'childSchool': child['school'],
@@ -212,9 +217,9 @@ Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dyn
       });
     }
 
-    print('Children data moved to pending_children for userId: $userId');
+    debugPrint('Children data moved to pending_children for userId: $userId');
   } catch (e) {
-    print('Error in updateUserChildren: $e');
+    debugPrint('Error in updateUserChildren: $e');
     throw Exception('Failed to update children data: $e');
   }
 }
