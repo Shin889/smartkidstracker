@@ -49,7 +49,7 @@ class _MainScreenState extends State<MainScreen> {
       const TeacherRecordScreen(),
     ] else if (widget.role == 'teacher') ...[
       const StudentRecords(),
-      PgAccScreen(childName: 'Child Name', userRole: widget.role, schoolName: '', section: '',),
+      PgAccScreen(childName: 'Child Name', userRole: widget.role, schoolName: '', childSection: '', childSchool: '', email: '', phone: ''),
     ],
     AttendanceScreen(userRole: '', section: '',),
     const AboutScreen(),

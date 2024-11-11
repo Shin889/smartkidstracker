@@ -3,9 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smartkidstracker/src/general_acc/data_access/auth_controller.dart';
 
 class ParentSignUpScreen extends StatefulWidget {
-  final String userId;
+  final String email;
+  final String phoneNumber;
 
-  const ParentSignUpScreen({super.key, required this.userId});
+  const ParentSignUpScreen({
+    super.key,
+    required this.email,
+    required this.phoneNumber,
+  });
 
   @override
   _ParentSignUpScreenState createState() => _ParentSignUpScreenState();
@@ -15,6 +20,7 @@ class _ParentSignUpScreenState extends State<ParentSignUpScreen> {
   final List<Map<String, String>> _children = [{'name': '', 'school': '', 'section': ''}];
   final AuthController _authController = AuthController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -24,8 +30,8 @@ class _ParentSignUpScreenState extends State<ParentSignUpScreen> {
 
   void _checkAuthentication() async {
     User? user = FirebaseAuth.instance.currentUser;
-    if (user == null || user.uid != widget.userId) {
-      Navigator.of(context).pushReplacementNamed('/login');
+    if (user == null) {
+      Navigator.of(context).pushReplacementNamed('/signin');
     }
   }
 
@@ -40,9 +46,17 @@ class _ParentSignUpScreenState extends State<ParentSignUpScreen> {
           child: Column(
             children: [
               Expanded(child: _buildChildrenList()),
-              ElevatedButton(onPressed: _addAnotherChild, child: const Text('Add Another Child')),
+              ElevatedButton(
+                onPressed: _addAnotherChild,
+                child: const Text('Add Another Child'),
+              ),
               const SizedBox(height: 16.0),
-              ElevatedButton(onPressed: _submitSignUpRequest, child: const Text('Submit')),
+              _isSubmitting
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                      onPressed: _submitSignUpRequest,
+                      child: const Text('Submit'),
+                    ),
             ],
           ),
         ),
@@ -54,48 +68,86 @@ class _ParentSignUpScreenState extends State<ParentSignUpScreen> {
     return ListView.builder(
       itemCount: _children.length,
       itemBuilder: (context, index) {
-        return Column(children: [
-          TextFormField(
-            decoration: const InputDecoration(labelText: 'Child Name'),
-            validator: (value) => value == null || value.isEmpty ? "Please enter the child's name" : null,
-            onSaved: (value) => _children[index]['name'] = value ?? '', // Ensure value is not null
-          ),
-          TextFormField(
-            decoration: const InputDecoration(labelText: 'Child School'),
-            validator: (value) => value == null || value.isEmpty ? "Please enter the child's school" : null,
-            onSaved: (value) => _children[index]['school'] = value ?? '', // Ensure value is not null
-          ),
-          TextFormField(
-            decoration: const InputDecoration(labelText: 'Child Section'),
-            validator: (value) => value == null || value.isEmpty ? "Please enter the child's section" : null,
-            onSaved: (value) => _children[index]['school'] = value ?? '',
-          ), // Ensure value is not null
-          const SizedBox(height: 16.0),
-        ]);
+        return Column(
+          children: [
+            TextFormField(
+              decoration: const InputDecoration(labelText: 'Child Name'),
+              validator: (value) => value == null || value.isEmpty ? "Please enter the child's name" : null,
+              onSaved: (value) => _children[index]['name'] = value ?? '',
+            ),
+            TextFormField(
+              decoration: const InputDecoration(labelText: 'Child School'),
+              validator: (value) => value == null || value.isEmpty ? "Please enter the child's school" : null,
+              onSaved: (value) => _children[index]['school'] = value ?? '',
+            ),
+            TextFormField(
+              decoration: const InputDecoration(labelText: 'Child Section'),
+              validator: (value) => value == null || value.isEmpty ? "Please enter the child's section" : null,
+              onSaved: (value) => _children[index]['section'] = value ?? '',
+            ),
+            const SizedBox(height: 16.0),
+          ],
+        );
       },
     );
   }
 
   void _addAnotherChild() {
-    setState(() { 
-      _children.add({'name': '', 'school': '', 'section': ''}); // Ensure new child entry is valid
+    setState(() {
+      _children.add({'name': '', 'school': '', 'section': ''});
     });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('New child section added')),
+    );
   }
 
- void _submitSignUpRequest() async {
-  if (_formKey.currentState!.validate()) {
-    _formKey.currentState!.save();
-    try {
-      print('Children data before update: $_children');
-      print('User ID: ${widget.userId}');
-      await _authController.updateUserChildren(widget.userId, _children);
-      print('Children data updated successfully');
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Children information updated successfully.')));
-    } catch (e) {
-      print('Error in _submitSignUpRequest: $e');
-      print('Stack trace: ${StackTrace.current}');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error : $e')));
+  Future<void> _submitSignUpRequest() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isSubmitting = true;
+      });
+      _formKey.currentState!.save();
+
+      try {
+        await savePendingChildData(
+          email: widget.email,
+          phoneNumber: widget.phoneNumber,
+          children: _children,
+        );
+
+        setState(() {
+          _isSubmitting = false;
+        });
+
+        Navigator.of(context).pushReplacementNamed('/signin');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Children added successfully. Your request is pending approval.'),
+            ),
+          );
+        });
+      } catch (e) {
+        setState(() {
+          _isSubmitting = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
- }
+
+  Future<void> savePendingChildData({
+    required String email,
+    required String phoneNumber,
+    required List<Map<String, String>> children,
+  }) async {
+    // Implement your logic to save data to `pending_children` collection here.
+    print('Saving pending data for $email with children details: $children');
+
+    // Example call to your AuthController or database service:
+    await _authController.updateUserChildren(
+      FirebaseAuth.instance.currentUser!.uid,
+      children,
+    );
+  }
 }

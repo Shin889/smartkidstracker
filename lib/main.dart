@@ -88,7 +88,7 @@ class _MyAppState extends State<MyApp> {
         '/teacher_auth': (context) => const TeacherAcc(),
         '/teacher_record': (context) => const TeacherRecordScreen(),
         '/student_record': (context) => const StudentRecords(),
-        '/pg_auth': (context) => PgAccScreen(childName: '', userRole: '', schoolName: '', section: ''),
+        '/pg_auth': (context) => PgAccScreen(childName: '', userRole: '', childSchool: '', childSection: '', schoolName: '', email: '', phone: ''),
         '/signin': (context) => const SignInScreen(),
         '/signup': (context) => const SignUpScreen(),
         '/privacy_policy': (context) => const PrivacyPolicy(),

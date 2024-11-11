@@ -121,16 +121,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('History Logs'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.archive),
-            onPressed: _archiveOldLogs,
-            tooltip: 'Archive old logs',
-          ),
-        ],
-      ),
       body: Column(
         children: [
           Expanded(

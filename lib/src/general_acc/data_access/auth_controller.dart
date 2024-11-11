@@ -28,7 +28,7 @@ class AuthController {
     required String phoneNumber,
     String? school,
     String? section,
-    required String role,
+    required String role, required String selectedRole,
   }) async {
     try {
       UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
@@ -198,19 +198,51 @@ Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dyn
   }
 
   Future<void> updateUserChildren(String userId, List<Map<String, String>> children) async {
-    try {
-      // Reference to the user's document in Firestore
-      DocumentReference userDoc = _firestore.collection('users').doc(userId);
+  try {
+    // Save the children data to a `pending_children` collection
+    CollectionReference pendingChildren = _firestore.collection('pending_children');
 
-      // Update the children field with the provided list
-      await userDoc.update({
-        'children': children,
+    for (var child in children) {
+      await pendingChildren.add({
+        'userId': userId,
+        'childName': child['name'],
+        'childSchool': child['school'],
+        'childSection': child['section'],
+        'createdAt': FieldValue.serverTimestamp(),
       });
+    }
 
-      print('Children data updated for userId: $userId');
+    print('Children data moved to pending_children for userId: $userId');
+  } catch (e) {
+    print('Error in updateUserChildren: $e');
+    throw Exception('Failed to update children data: $e');
+  }
+}
+
+   Future<UserCredential> signUpWithEmailPassword(String email, String password) async {
+    try {
+      // Create a new user with the provided email and password
+      UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Return the user credential on successful sign up
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      // Handle different error codes and throw more meaningful messages
+      if (e.code == 'email-already-in-use') {
+        throw Exception('The email address is already in use by another account.');
+      } else if (e.code == 'weak-password') {
+        throw Exception('The password provided is too weak.');
+      } else if (e.code == 'invalid-email') {
+        throw Exception('The email address is not valid.');
+      } else {
+        throw Exception('Failed to sign up: ${e.message}');
+      }
     } catch (e) {
-      print('Error in updateUserChildren: $e');
-      throw Exception('Failed to update children data: $e');
+      // Handle any other exceptions
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 }

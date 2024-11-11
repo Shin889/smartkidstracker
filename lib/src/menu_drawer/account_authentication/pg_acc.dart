@@ -4,15 +4,19 @@ import 'package:flutter/material.dart';
 class PgAccScreen extends StatefulWidget {
   final String childName;
   final String userRole;
-  final String schoolName;
-  final String section;
+  final String childSchool;
+  final String childSection;
+  final String email;
+  final String phone;
 
   const PgAccScreen({
     super.key,
     required this.childName,
     required this.userRole,
-    required this.schoolName,
-    required this.section,
+    required this.childSchool,
+    required this.childSection,
+    required this.email,
+    required this.phone, required String schoolName,
   });
 
   @override
@@ -20,131 +24,118 @@ class PgAccScreen extends StatefulWidget {
 }
 
 class _PgAccScreenState extends State<PgAccScreen> {
-  List<Map<String, dynamic>> _pendingChildren = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkUserRole();
-    _loadPendingChildren();
-  }
-
-  Future<void> _loadPendingChildren() async {
-    try {
-      final pendingChildrenSnapshot = await FirebaseFirestore.instance
-          .collection('pending_children')
-          .where('school', isEqualTo: widget.schoolName)
-          .get();
-      setState(() {
-        _pendingChildren = pendingChildrenSnapshot.docs.map((doc) => doc.data()).toList();
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading pending children: $e')));
-    }
-  }
-
-  void _checkUserRole() {
-    if (widget.userRole != 'Teacher' && widget.userRole != 'Admin') {
-      Future.delayed(Duration.zero, () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Access denied. Only teachers and admins can view this page.')),
-        );
-        Navigator.of(context).pop();
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.schoolName)),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _pendingChildren.isNotEmpty
-              ? ListView.builder(
-                  itemCount: _pendingChildren.length,
-                  itemBuilder: (context, index) {
-                    final child = _pendingChildren[index];
-                    return Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Name: ${child['name']}', style: Theme.of(context).textTheme.titleLarge),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Action'),
-                              _buildActionButtons(child),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                        ],
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('pending_children').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No pending children to be found'));
+          }
+
+          final pendingChildren = snapshot.data!.docs;
+
+          return ListView.builder(
+            itemCount: pendingChildren.length,
+            itemBuilder: (context, index) {
+              final data = pendingChildren[index].data() as Map<String, dynamic>;
+
+              final childName = data['childName'] as String? ?? 'N/A';
+              final childSchool = data['childSchool'] as String? ?? 'N/A';
+              final childSection = data['childSection'] as String? ?? 'N/A';
+              final createdAt = data['createdAt'] != null
+                  ? (data['createdAt'] as Timestamp).toDate().toLocal().toString()
+                  : 'N/A';
+
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Child Details',
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
-                    );
-                  },
-                )
-              : const Center(child: Text('No pending children')),
+                      const SizedBox(height: 8),
+                      Text('Name: $childName'),
+                      Text('School: $childSchool'),
+                      Text('Section: $childSection'),
+                      Text('Created At: $createdAt'),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: _buildActionButtons(pendingChildren[index].id, data),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildActionButtons(Map<String, dynamic> child) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ElevatedButton(
-          onPressed: () => _handleConfirmation(child, true),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-          child: const Text('Confirm'),
-        ),
-        const SizedBox(width: 8),
-        ElevatedButton(
-          onPressed: () => _handleConfirmation(child, false),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          child: const Text('Reject'),
-        ),
-      ],
-    );
+  List<Widget> _buildActionButtons(String docId, Map<String, dynamic> data) {
+    return [
+      ElevatedButton(
+        onPressed: () => _handleConfirmation(docId, data, true),
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+        child: const Text('Confirm'),
+      ),
+      const SizedBox(width: 8),
+      ElevatedButton(
+        onPressed: () => _handleConfirmation(docId, data, false),
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+        child: const Text('Reject'),
+      ),
+    ];
   }
 
-  Future<void> _handleConfirmation(Map<String, dynamic> child, bool confirmed) async {
+  Future<void> _handleConfirmation(String docId, Map<String, dynamic> data, bool confirmed) async {
     try {
       if (confirmed) {
         await FirebaseFirestore.instance.runTransaction((transaction) async {
-          // Remove child from pending_children collection
-          final pendingChildRef = FirebaseFirestore.instance.collection('pending_children').doc(child['id']);
-          transaction.delete(pendingChildRef);
+          final pendingChildRef = FirebaseFirestore.instance.collection('pending_children').doc(docId);
+          final confirmedChildRef = FirebaseFirestore.instance.collection('confirmed_children').doc();
 
-          // Add child to confirmed_children collection
-          final confirmedChildRef = FirebaseFirestore.instance.collection('confirmed_children').doc(child['id']);
+          // Copy data to 'confirmed_children' and delete from 'pending_children'
           transaction.set(confirmedChildRef, {
-            'name': child['name'],
-            'school': widget.schoolName,
-            'section': widget.section,
+            'childName': data['childName'],
+            'childSchool': data['childSchool'],
+            'childSection': data['childSection'],
+            'email': data['email'], // Include email
+            'phone': data['phone'], // Include phone
+            'createdAt': data['createdAt'],
             'confirmedAt': FieldValue.serverTimestamp(),
           });
+          transaction.delete(pendingChildRef);
         });
       } else {
-        await FirebaseFirestore.instance.collection('pending_children').doc(child['id']).update({
+        await FirebaseFirestore.instance.collection('pending_children').doc(docId).update({
           'status': 'rejected',
         });
       }
 
-      setState(() {
-        _pendingChildren.remove(child);
-      });
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(confirmed ? 'Child confirmed' : 'Child rejected')),
+        SnackBar(content: Text(confirmed ? 'Application confirmed' : 'Application rejected')),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating status: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating status: $e')),
+      );
     }
   }
 }
