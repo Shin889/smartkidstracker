@@ -204,49 +204,65 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _handleSignUp() async {
-    try {
-      UserCredential userCredential = await _authController.signUp(
-        email: _email,
-        password: _password,
-        firstName: _firstName,
-        middleName: _middleName,
-        lastName: _lastName,
-        phoneNumber: _phoneNumber,
-        school: _school,
-        section: _section,
-        role: _selectedRole, selectedRole: '',
-      );
+  try {
+    // Sign up the user with Firebase Auth
+    UserCredential userCredential = await _authController.signUp(
+      email: _email,
+      password: _password,
+      firstName: _firstName,
+      middleName: _middleName,
+      lastName: _lastName,
+      phoneNumber: _phoneNumber,
+      school: _school,
+      section: _section,
+      role: _selectedRole, selectedRole: '',
+    );
 
-      if (userCredential.user != null) {
-        if (mounted) {
-          if (_selectedRole == 'Admin') {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const SignInScreen()));
-          } else if (_selectedRole == 'Parent or Guardian') {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ParentSignUpScreen(email: _email, phoneNumber: _phoneNumber)));
-          } else if (_selectedRole == 'Teacher') {
-            await _saveTeacherData(userCredential.user!.uid);
-          }
+    if (userCredential.user != null) {
+      // After user is successfully signed up, check role and save data accordingly
+      if (_selectedRole == 'Teacher') {
+        // Ensure Firestore write operation is awaited
+        await FirebaseFirestore.instance.collection('pending_teachers').add({
+          'firstName': _firstName,
+          'middleName': _middleName,
+          'lastName': _lastName,
+          'phoneNumber': _phoneNumber,
+          'school': _school,
+          'section': _section,
+        }).then((docRef) {
+          print('Teacher added with ID: ${docRef.id}');
+        }).catchError((e) {
+          print('Error adding teacher: $e');
+        });
+      }
+      
+      // After the data is saved, navigate to the appropriate screen
+      if (mounted) {
+        if (_selectedRole == 'Admin') {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const SignInScreen()));
+        } else if (_selectedRole == 'Parent or Guardian') {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => ParentSignUpScreen(email: _email, phoneNumber: _phoneNumber)));
+        } else if (_selectedRole == 'Teacher') {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const SignInScreen()));
         }
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+    }
+  } catch (e) {
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('Error'),
+          content: Text(e.toString()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
-
-  Future<void> _saveTeacherData(String userId) async {
-    try {
-      await FirebaseFirestore.instance.collection('teachers').doc(userId).set({
-        'firstName': _firstName,
-        'middleName': _middleName,
-        'lastName': _lastName,
-        'school': _school,
-        'section': _section,
-      });
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const SignInScreen()));
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save data: $e')));
-    }
-  }
+}
 }
