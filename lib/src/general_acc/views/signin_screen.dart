@@ -29,6 +29,8 @@ Future<void> _handleSignIn() async {
           _emailOrPhoneController.text,
           _passwordController.text,
         );
+        print("HAHAHA");
+        print(result);
         if (result['success'] == true) {
           if (!mounted) return;
           Navigator.pushReplacementNamed(

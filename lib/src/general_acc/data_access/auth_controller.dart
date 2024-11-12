@@ -75,6 +75,7 @@ class AuthController {
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>;
         final String role = userData['role']?.toLowerCase() ?? '';
+        print(role);
 
         if (role == 'admin') {
           // Admins can sign in without confirmation checks.
@@ -82,9 +83,9 @@ class AuthController {
         } else if (role == 'teacher') {
           // Check confirmed_teachers for teachers.
           return await _handleRoleConfirmation(user.uid, userData, 'teacher');
-        } else if (role == 'parent' || role == 'guardian') {
+        } else if (role == 'parent' || role == 'guardian' || role=='parent or guardian') {
           // Check confirmed_children for parents/guardians.
-          return await _handleRoleConfirmation(user.uid, userData, 'child');
+          return await _handleRoleConfirmation2(user.uid, userData, 'children');
         } else {
           await _firebaseAuth.signOut();
           return _buildErrorResponse('Invalid user role');
@@ -114,6 +115,20 @@ Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dyn
     return _buildErrorResponse('User is not confirmed in $confirmationCollection');
   }
 }
+
+  Future<Map<String, dynamic>> _handleRoleConfirmation2(String uid, Map<String, dynamic> userData, String roleType) async {
+    // Check confirmed collection based on the role type (teacher or child).
+    final String confirmationCollection = 'confirmed_${roleType}';
+    print(uid);
+    DocumentSnapshot confirmedDoc = await _firestore.collection(confirmationCollection).doc(uid).get();
+
+    if (confirmedDoc.exists) {
+      return _buildUserResponse(userData, roleType);
+    } else {
+      await _firebaseAuth.signOut();
+      return _buildErrorResponse('User is not confirmed in $confirmationCollection');
+    }
+  }
 
 
   Map<String, dynamic> _buildUserResponse(Map<String, dynamic> userData, String role) {
