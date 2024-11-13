@@ -16,7 +16,9 @@ class _TeacherAccState extends State<TeacherAcc> {
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('pending_teachers')
+          .collection('users')
+          .where('role', isEqualTo: 'Teacher')
+          .where('status', isEqualTo: 'Pending')
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -154,32 +156,8 @@ class FirestoreOperations {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
     try {
-      await firestore.runTransaction((transaction) async {
-        // Reference to the pending teacher document
-        final pendingTeacherRef = firestore.collection('pending_teachers').doc(docId);
-        
-        // Check if the pending teacher document exists
-        final pendingDocSnapshot = await transaction.get(pendingTeacherRef);
-        if (!pendingDocSnapshot.exists) {
-          throw Exception('Pending teacher does not exist');
-        }
-
-        // Add teacher to confirmed_teachers collection
-        final confirmedTeacherRef = firestore.collection('confirmed_teachers').doc(teacherData['userId'] ?? docId);
-        transaction.set(confirmedTeacherRef, {
-          'firstName': teacherData['firstName'] ?? '',
-          'middleName': teacherData['middleName'] ?? '',
-          'lastName': teacherData['lastName'] ?? '',
-          'email': teacherData['email'] ?? '',
-          'phoneNumber': teacherData['phoneNumber'] ?? '',
-          'school': teacherData['school'] ?? '',
-          'section': teacherData['section'] ?? '',
-          'confirmedAt': FieldValue.serverTimestamp(),
-        });
-
-        // Delete the pending teacher document
-        transaction.delete(pendingTeacherRef);
-      });
+      final confirmedTeacherRef = firestore.collection('users').doc(docId);
+      await confirmedTeacherRef.update({'status': 'Confirmed'});
     } catch (e) {
       print('Error transferring teacher in FirestoreOperations.transferTeacherToConfirmed(): $e');
       rethrow; // Ensure the error propagates to the calling function

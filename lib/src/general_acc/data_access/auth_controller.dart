@@ -40,6 +40,7 @@ class AuthController {
       );
 
       if (userCredential.user != null) {
+
         await _firestore.collection('users').doc(userCredential.user!.uid).set({
           'firstName': firstName,
           'middleName': middleName,
@@ -49,6 +50,7 @@ class AuthController {
           'school': school ?? '',
           'section': section ?? '',
           'role': role,
+          'status':"Pending",
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
@@ -82,10 +84,19 @@ class AuthController {
           return _buildUserResponse(userData, role);
         } else if (role == 'teacher') {
           // Check confirmed_teachers for teachers.
-          return await _handleRoleConfirmation(user.uid, userData, 'teacher');
+          if(userData["status"]=="Confirmed"){
+            return _buildUserResponse(userData, role);
+          }else{
+            return _buildErrorResponse('Teacher is still not confirmed');
+          }
+
         } else if (role == 'parent' || role == 'guardian' || role=='parent or guardian') {
           // Check confirmed_children for parents/guardians.
-          return await _handleRoleConfirmation2(user.uid, userData, 'children');
+          if(userData["status"]=="Confirmed"){
+            return _buildUserResponse(userData, role);
+          }else{
+            return _buildErrorResponse('Parent/Guardian is still not confirmed');
+          }
         } else {
           await _firebaseAuth.signOut();
           return _buildErrorResponse('Invalid user role');
@@ -119,10 +130,14 @@ Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dyn
   Future<Map<String, dynamic>> _handleRoleConfirmation2(String uid, Map<String, dynamic> userData, String roleType) async {
     // Check confirmed collection based on the role type (teacher or child).
     final String confirmationCollection = 'confirmed_${roleType}';
-    print(uid);
-    DocumentSnapshot confirmedDoc = await _firestore.collection(confirmationCollection).doc(uid).get();
+    QuerySnapshot querySnapshot = await _firestore
+        .collection(confirmationCollection)
+        .where('userUid', isEqualTo: uid)
+        .limit(1)
+        .get();
 
-    if (confirmedDoc.exists) {
+    if (querySnapshot.docs.isNotEmpty) {
+      DocumentSnapshot confirmedDoc = querySnapshot.docs.first;
       return _buildUserResponse(userData, roleType);
     } else {
       await _firebaseAuth.signOut();
@@ -218,16 +233,17 @@ Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dyn
   Future<void> updateUserChildren(String userId, String email, String phoneNumber, List<Map<String, String>> children) async {
   try {
     // Reference to the `pending_children` collection
-    CollectionReference pendingChildren = _firestore.collection('pending_children');
+    CollectionReference pendingChildren = _firestore.collection('children');
 
     for (var child in children) {
       await pendingChildren.add({
         'email': email,
         'phoneNumber': phoneNumber,
-        'userId': userId,
+        'parentId': userId,
         'childName': child['name'],
         'childSchool': child['school'],
         'childSection': child['section'],
+        'status':"Pending",
         'createdAt': FieldValue.serverTimestamp(),
       });
     }

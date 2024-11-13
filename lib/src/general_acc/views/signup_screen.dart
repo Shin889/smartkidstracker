@@ -182,9 +182,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       validator: (value) {
         if (value == null || value.isEmpty) return 'Please enter a password';
         if (value.length < 8) return 'Password must be at least 8 characters long';
-        if (!RegExp(r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$').hasMatch(value)) {
-          return 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character';
-        }
+        // if (!RegExp(r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$').hasMatch(value)) {
+        //   return 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character';
+        // }
         return null;
       },
       onSaved: (value) => _password = value!,
@@ -205,6 +205,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> _handleSignUp() async {
     try {
+
       UserCredential userCredential = await _authController.signUp(
         email: _email,
         password: _password,
@@ -224,7 +225,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           } else if (_selectedRole == 'Parent or Guardian') {
             Navigator.push(context, MaterialPageRoute(builder: (context) => ParentSignUpScreen(email: _email, phoneNumber: _phoneNumber)));
           } else if (_selectedRole == 'Teacher') {
-            await _saveTeacherData(userCredential.user!.uid);
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const SignInScreen()));
           }
         }
       }

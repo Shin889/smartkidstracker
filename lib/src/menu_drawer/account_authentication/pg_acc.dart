@@ -28,7 +28,7 @@ class _PgAccScreenState extends State<PgAccScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('pending_children').snapshots(),
+        stream: FirebaseFirestore.instance.collection('children').where('status', isEqualTo: 'Pending').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -107,25 +107,21 @@ class _PgAccScreenState extends State<PgAccScreen> {
   Future<void> _handleConfirmation(String docId, Map<String, dynamic> data, bool confirmed) async {
     try {
       if (confirmed) {
-        await FirebaseFirestore.instance.runTransaction((transaction) async {
-          final pendingChildRef = FirebaseFirestore.instance.collection('pending_children').doc(docId);
-          final confirmedChildRef = FirebaseFirestore.instance.collection('confirmed_children').doc();
+        final pendingChildRef = FirebaseFirestore.instance.collection('children').doc(docId);
 
-          // Copy data to 'confirmed_children' and delete from 'pending_children'
-          transaction.set(confirmedChildRef, {
-            'childName': data['childName'],
-            'childSchool': data['childSchool'],
-            'childSection': data['childSection'],
-            'email': data['email'], // Include email
-            'phone': data['phone'], // Include phone
-            'createdAt': data['createdAt'],
-            'confirmedAt': FieldValue.serverTimestamp(),
-          });
-          transaction.delete(pendingChildRef);
-        });
+        DocumentSnapshot childDocSnapshot = await pendingChildRef.get();
+
+        if (childDocSnapshot.exists) {
+          String parentId = childDocSnapshot['parentId'];
+
+          await pendingChildRef.update({'status': 'Confirmed'});
+          final parentRef = FirebaseFirestore.instance.collection('users').doc(parentId);
+          await parentRef.update({'status': 'Confirmed'});
+
+        }
       } else {
-        await FirebaseFirestore.instance.collection('pending_children').doc(docId).update({
-          'status': 'rejected',
+        await FirebaseFirestore.instance.collection('children').doc(docId).update({
+          'status': 'Rejected',
         });
       }
 
