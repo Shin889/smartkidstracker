@@ -9,7 +9,7 @@ class AuthController {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-  
+
   get phoneNumber => null;
   get email => null;
 
@@ -31,16 +31,17 @@ class AuthController {
     required String phoneNumber,
     String? school,
     String? section,
-    required String role, required String selectedRole,
+    required String role,
+    required String selectedRole,
   }) async {
     try {
-      UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+      UserCredential userCredential =
+          await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
       if (userCredential.user != null) {
-
         await _firestore.collection('users').doc(userCredential.user!.uid).set({
           'firstName': firstName,
           'middleName': middleName,
@@ -50,7 +51,7 @@ class AuthController {
           'school': school ?? '',
           'section': section ?? '',
           'role': role,
-          'status':"Pending",
+          'status': "Pending",
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
@@ -63,71 +64,80 @@ class AuthController {
     }
   }
 
-  Future<Map<String, dynamic>> signInWithEmailAndPassword(String email, String password) async {
-  try {
-    debugPrint('Attempting to sign in with email: $email');
-    final UserCredential userCredential = await _firebaseAuth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+  Future<Map<String, dynamic>> signInWithEmailAndPassword(
+      String email, String password) async {
+    try {
+      debugPrint('Attempting to sign in with email: $email');
+      final UserCredential userCredential =
+          await _firebaseAuth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    final User? user = userCredential.user;
-    if (user != null) {
-      DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
-      if (userDoc.exists) {
-        final userData = userDoc.data() as Map<String, dynamic>;
-        final String role = userData['role']?.toLowerCase() ?? '';
-        print(role);
+      final User? user = userCredential.user;
+      if (user != null) {
+        DocumentSnapshot userDoc =
+            await _firestore.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>;
+          final String role = userData['role']?.toLowerCase() ?? '';
+          print(role);
 
-        if (role == 'admin') {
-          // Admins can sign in without confirmation checks.
-          return _buildUserResponse(userData, role);
-        } else if (role == 'teacher') {
-          // Check confirmed_teachers for teachers.
-          if(userData["status"]=="Confirmed"){
+          if (role == 'admin') {
+            // Admins can sign in without confirmation checks.
             return _buildUserResponse(userData, role);
-          }else{
-            return _buildErrorResponse('Teacher is still not confirmed');
-          }
-
-        } else if (role == 'parent' || role == 'guardian' || role=='parent or guardian') {
-          // Check confirmed_children for parents/guardians.
-          if(userData["status"]=="Confirmed"){
-            return _buildUserResponse(userData, role);
-          }else{
-            return _buildErrorResponse('Parent/Guardian is still not confirmed');
+          } else if (role == 'teacher') {
+            // Check confirmed_teachers for teachers.
+            if (userData["status"] == "Confirmed") {
+              return _buildUserResponse(userData, role);
+            } else {
+              return _buildErrorResponse('Teacher is still not confirmed');
+            }
+          } else if (role == 'parent' ||
+              role == 'guardian' ||
+              role == 'parent or guardian') {
+            // Check confirmed_children for parents/guardians.
+            if (userData["status"] == "Confirmed") {
+              return _buildUserResponse(userData, role);
+            } else {
+              return _buildErrorResponse(
+                  'Parent/Guardian is still not confirmed');
+            }
+          } else {
+            await _firebaseAuth.signOut();
+            return _buildErrorResponse('Invalid user role');
           }
         } else {
           await _firebaseAuth.signOut();
-          return _buildErrorResponse('Invalid user role');
+          return _buildErrorResponse('User data not found');
         }
       } else {
-        await _firebaseAuth.signOut();
-        return _buildErrorResponse('User data not found');
+        return _buildErrorResponse('User not found');
       }
-    } else {
-      return _buildErrorResponse('User not found');
+    } catch (e) {
+      debugPrint('Error during sign in: $e');
+      return _buildErrorResponse('Sign-in error: $e');
     }
-  } catch (e) {
-    debugPrint('Error during sign in: $e');
-    return _buildErrorResponse('Sign-in error: $e');
   }
-}
 
-Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dynamic> userData, String roleType) async {
-  // Check confirmed collection based on the role type (teacher or child).
-  final String confirmationCollection = 'confirmed_${roleType}s';
-  DocumentSnapshot confirmedDoc = await _firestore.collection(confirmationCollection).doc(uid).get();
+  Future<Map<String, dynamic>> _handleRoleConfirmation(
+      String uid, Map<String, dynamic> userData, String roleType) async {
+    // Check confirmed collection based on the role type (teacher or child).
+    final String confirmationCollection = 'confirmed_${roleType}s';
+    DocumentSnapshot confirmedDoc =
+        await _firestore.collection(confirmationCollection).doc(uid).get();
 
-  if (confirmedDoc.exists) {
-    return _buildUserResponse(userData, roleType);
-  } else {
-    await _firebaseAuth.signOut();
-    return _buildErrorResponse('User is not confirmed in $confirmationCollection');
+    if (confirmedDoc.exists) {
+      return _buildUserResponse(userData, roleType);
+    } else {
+      await _firebaseAuth.signOut();
+      return _buildErrorResponse(
+          'User is not confirmed in $confirmationCollection');
+    }
   }
-}
 
-  Future<Map<String, dynamic>> _handleRoleConfirmation2(String uid, Map<String, dynamic> userData, String roleType) async {
+  Future<Map<String, dynamic>> _handleRoleConfirmation2(
+      String uid, Map<String, dynamic> userData, String roleType) async {
     // Check confirmed collection based on the role type (teacher or child).
     final String confirmationCollection = 'confirmed_${roleType}';
     QuerySnapshot querySnapshot = await _firestore
@@ -141,18 +151,20 @@ Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dyn
       return _buildUserResponse(userData, roleType);
     } else {
       await _firebaseAuth.signOut();
-      return _buildErrorResponse('User is not confirmed in $confirmationCollection');
+      return _buildErrorResponse(
+          'User is not confirmed in $confirmationCollection');
     }
   }
 
-
-  Map<String, dynamic> _buildUserResponse(Map<String, dynamic> userData, String role) {
+  Map<String, dynamic> _buildUserResponse(
+      Map<String, dynamic> userData, String role) {
     return {
       'success': true,
       'firstName': userData['firstName'] ?? '',
       'lastName': userData['lastName'] ?? '',
       'section': userData['section'] ?? '',
       'role': role,
+      'email': userData['email'] ?? '',
     };
   }
 
@@ -165,17 +177,20 @@ Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dyn
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return;
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential = await _firebaseAuth.signInWithCredential(credential);
+      final UserCredential userCredential =
+          await _firebaseAuth.signInWithCredential(credential);
       final User? user = userCredential.user;
 
       if (user != null) {
-        DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
+        DocumentSnapshot userDoc =
+            await _firestore.collection('users').doc(user.uid).get();
         if (userDoc.exists) {
           final userData = userDoc.data() as Map<String, dynamic>;
           final String role = userData['role'] ?? '';
@@ -196,7 +211,8 @@ Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dyn
     }
   }
 
-  Future<void> _navigateToMainScreen(BuildContext context, Map<String, dynamic> userData, String role) async {
+  Future<void> _navigateToMainScreen(
+      BuildContext context, Map<String, dynamic> userData, String role) async {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -204,6 +220,7 @@ Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dyn
           firstName: userData['firstName'] ?? '',
           lastName: userData['lastName'] ?? '',
           section: userData['section'] ?? '',
+          email: userData['email'] ?? '',
           role: role,
         ),
       ),
@@ -230,35 +247,38 @@ Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dyn
     return _firebaseAuth.currentUser;
   }
 
-  Future<void> updateUserChildren(String userId, String email, String phoneNumber, List<Map<String, String>> children) async {
-  try {
-    // Reference to the `pending_children` collection
-    CollectionReference pendingChildren = _firestore.collection('children');
+  Future<void> updateUserChildren(String userId, String email,
+      String phoneNumber, List<Map<String, String>> children) async {
+    try {
+      // Reference to the `pending_children` collection
+      CollectionReference pendingChildren = _firestore.collection('children');
 
-    for (var child in children) {
-      await pendingChildren.add({
-        'email': email,
-        'phoneNumber': phoneNumber,
-        'parentId': userId,
-        'childName': child['name'],
-        'childSchool': child['school'],
-        'childSection': child['section'],
-        'status':"Pending",
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      for (var child in children) {
+        await pendingChildren.add({
+          'email': email,
+          'phoneNumber': phoneNumber,
+          'parentId': userId,
+          'childName': child['name'],
+          'childSchool': child['school'],
+          'childSection': child['section'],
+          'status': "Pending",
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      debugPrint('Children data moved to pending_children for userId: $userId');
+    } catch (e) {
+      debugPrint('Error in updateUserChildren: $e');
+      throw Exception('Failed to update children data: $e');
     }
-
-    debugPrint('Children data moved to pending_children for userId: $userId');
-  } catch (e) {
-    debugPrint('Error in updateUserChildren: $e');
-    throw Exception('Failed to update children data: $e');
   }
-}
 
-   Future<UserCredential> signUpWithEmailPassword(String email, String password) async {
+  Future<UserCredential> signUpWithEmailPassword(
+      String email, String password) async {
     try {
       // Create a new user with the provided email and password
-      UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+      UserCredential userCredential =
+          await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -268,7 +288,8 @@ Future<Map<String, dynamic>> _handleRoleConfirmation(String uid, Map<String, dyn
     } on FirebaseAuthException catch (e) {
       // Handle different error codes and throw more meaningful messages
       if (e.code == 'email-already-in-use') {
-        throw Exception('The email address is already in use by another account.');
+        throw Exception(
+            'The email address is already in use by another account.');
       } else if (e.code == 'weak-password') {
         throw Exception('The password provided is too weak.');
       } else if (e.code == 'invalid-email') {

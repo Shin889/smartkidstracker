@@ -22,7 +22,7 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-Future<void> _handleSignIn() async {
+  Future<void> _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
       try {
         Map result = await _authController.signInWithEmailAndPassword(
@@ -39,6 +39,7 @@ Future<void> _handleSignIn() async {
               'lastName': result['lastName'] ?? '',
               'section': result['section'] ?? '',
               'role': result['role'] ?? '',
+              'email': result['email'] ?? '',
             },
           );
         } else {
