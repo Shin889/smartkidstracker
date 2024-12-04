@@ -24,8 +24,17 @@ class AttendancePage extends StatefulWidget {
 
 class _RfidTaggingState extends State<AttendancePage> {
   var firestoreController = FirestoreController();
+  Student tappedStudent = Student(
+      id: '', name: '', rfidNumber: '', section: '', email: '', school: '');
+  String tappedType = '';
+  String valData = '';
+  String? rfidNumber;
+  FocusNode? n;
+
   @override
   void initState() {
+    super.initState();
+    n = FocusNode();
     super.initState();
     NfcController(context).checkNfc();
   }
@@ -48,8 +57,48 @@ class _RfidTaggingState extends State<AttendancePage> {
   }
 
   Future<void> scanRfid(Student studentModel, String type) async {
+    tappedStudent = studentModel;
+    tappedType = type;
     NfcController(context).showNfcDialog(studentModel.name);
     startNFCReading(studentModel, type);
+  }
+
+  _buildTextComposer(Student student, String type) {
+    valData = '';
+    FocusScope.of(context).requestFocus(n);
+    return KeyboardListener(
+        focusNode: n!,
+        onKeyEvent: (KeyEvent event) {
+          if (event.runtimeType.toString() == 'KeyUpEvent') {
+            var values;
+            if (event.logicalKey.keyLabel == "Alt Left" ||
+                event.logicalKey.keyLabel == "Enter") {
+              int dec = int.parse(valData);
+              String xx = dec.toRadixString(16);
+              if (xx.length < 8) {
+                values = '0' + xx;
+              } else {
+                values = xx;
+              }
+
+              rfidNumber =
+                  int.parse(values.substring(6, 8), radix: 16).toString() +
+                      '-' +
+                      int.parse(values.substring(4, 6), radix: 16).toString() +
+                      '-' +
+                      int.parse(values.substring(2, 4), radix: 16).toString() +
+                      '-' +
+                      int.parse(values.substring(0, 2), radix: 16).toString();
+              firestoreController.handleRfidScan(
+                  context, student, rfidNumber!, type);
+              Navigator.pop(context);
+              AttendanceSuccessSnackbar(context).showTaggedSnackbar();
+            } else {
+              valData += event.logicalKey.keyLabel;
+            }
+          }
+        },
+        child: Text(''));
   }
 
   void showTapInTapOutDialog(String student, Student studentModel) {
@@ -115,31 +164,40 @@ class _RfidTaggingState extends State<AttendancePage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(title: Text(ATTENDANCECONSTANTS.attendanceTitle)),
-        body: StreamBuilder<QuerySnapshot>(
-          stream: firestoreController.streamCollection('children'),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return ReturnLoading();
-            } else if (snapshot.hasError) {
-              return ReturnText(message: CONTROLLERCONSTANTS.errorText);
-            } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return ReturnText(message: CONTROLLERCONSTANTS.noStudentsText);
-            } else {
-              final students = firestoreController.getAllStudents(
-                  snapshot.data!, widget.section);
-              return GridView.builder(
-                gridDelegate: CONTROLLERCONSTANTS.gridDelegate,
-                itemCount: students.length,
-                itemBuilder: (context, index) {
-                  final student = students[index];
-                  return StudentCard(
-                    student: student,
-                    onTap: () => showTapInTapOutDialog(student.name, student),
-                  );
+        body: Column(
+          children: [
+            _buildTextComposer(tappedStudent, tappedType),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: firestoreController.streamCollection('children'),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return ReturnLoading();
+                  } else if (snapshot.hasError) {
+                    return ReturnText(message: CONTROLLERCONSTANTS.errorText);
+                  } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return ReturnText(
+                        message: CONTROLLERCONSTANTS.noStudentsText);
+                  } else {
+                    final students = firestoreController.getAllStudents(
+                        snapshot.data!, widget.section);
+                    return GridView.builder(
+                      gridDelegate: CONTROLLERCONSTANTS.gridDelegate,
+                      itemCount: students.length,
+                      itemBuilder: (context, index) {
+                        final student = students[index];
+                        return StudentCard(
+                          student: student,
+                          onTap: () =>
+                              showTapInTapOutDialog(student.name, student),
+                        );
+                      },
+                    );
+                  }
                 },
-              );
-            }
-          },
+              ),
+            ),
+          ],
         ));
   }
 }

@@ -24,11 +24,24 @@ class RfidTagging extends StatefulWidget {
 
 class _RfidTaggingState extends State<RfidTagging> {
   var firestoreController = FirestoreController();
+  String valData = '';
+  FocusNode? n;
+  String? rfidNumber;
+  String tappedStudent = '';
+  String focusSelected = 'back';
 
   @override
   void initState() {
+    n = FocusNode();
     super.initState();
     NfcController(context).checkNfc();
+  }
+
+  @override
+  void dispose() {
+    // Clean up the focus node when the Form is disposed
+    n!.dispose();
+    super.dispose();
   }
 
   Future<void> startNFCReading(String id) async {
@@ -48,39 +61,86 @@ class _RfidTaggingState extends State<RfidTagging> {
   }
 
   void scanRfid(BuildContext context, Student student) async {
+    tappedStudent = student.id;
     NfcController(context).showNfcDialog(student.name);
     startNFCReading(student.id);
+  }
+
+  _buildTextComposer(String id) {
+    valData = '';
+    FocusScope.of(context).requestFocus(n);
+    return KeyboardListener(
+        focusNode: n!,
+        onKeyEvent: (KeyEvent event) {
+          if (event.runtimeType.toString() == 'KeyUpEvent') {
+            var values;
+            if (event.logicalKey.keyLabel == "Alt Left" ||
+                event.logicalKey.keyLabel == "Enter") {
+              int dec = int.parse(valData);
+              String xx = dec.toRadixString(16);
+              if (xx.length < 8) {
+                values = '0' + xx;
+              } else {
+                values = xx;
+              }
+
+              rfidNumber =
+                  int.parse(values.substring(6, 8), radix: 16).toString() +
+                      '-' +
+                      int.parse(values.substring(4, 6), radix: 16).toString() +
+                      '-' +
+                      int.parse(values.substring(2, 4), radix: 16).toString() +
+                      '-' +
+                      int.parse(values.substring(0, 2), radix: 16).toString();
+              firestoreController.insertRfidNumber(id, rfidNumber!);
+              Navigator.pop(context);
+              RfidSuccessSnackbar(context).showTaggedSnackbar();
+            } else {
+              valData += event.logicalKey.keyLabel;
+            }
+          }
+        },
+        child: Text(''));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: Text(RFIDTAGGINGCONSTANTS.rfidTitle)),
-        body: StreamBuilder<QuerySnapshot>(
-          stream: firestoreController.streamCollection('children'),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return ReturnLoading();
-            } else if (snapshot.hasError) {
-              return ReturnText(message: CONTROLLERCONSTANTS.errorText);
-            } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return ReturnText(message: CONTROLLERCONSTANTS.noStudentsText);
-            } else {
-              final students = firestoreController.getAllStudents(
-                  snapshot.data!, widget.section);
-              return GridView.builder(
-                gridDelegate: CONTROLLERCONSTANTS.gridDelegate,
-                itemCount: students.length,
-                itemBuilder: (context, index) {
-                  final student = students[index];
-                  return StudentCard(
-                    student: student,
-                    onTap: () => scanRfid(context, student),
+      appBar: AppBar(title: Text(RFIDTAGGINGCONSTANTS.rfidTitle)),
+      body: Column(
+        children: [
+          _buildTextComposer(tappedStudent),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: firestoreController.streamCollection('children'),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return ReturnLoading();
+                } else if (snapshot.hasError) {
+                  return ReturnText(message: CONTROLLERCONSTANTS.errorText);
+                } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return ReturnText(
+                      message: CONTROLLERCONSTANTS.noStudentsText);
+                } else {
+                  final students = firestoreController.getAllStudents(
+                      snapshot.data!, widget.section);
+                  return GridView.builder(
+                    gridDelegate: CONTROLLERCONSTANTS.gridDelegate,
+                    itemCount: students.length,
+                    itemBuilder: (context, index) {
+                      final student = students[index];
+                      return StudentCard(
+                        student: student,
+                        onTap: () => scanRfid(context, student),
+                      );
+                    },
                   );
-                },
-              );
-            }
-          },
-        ));
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
