@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/material.dart';
 import 'package:smartkidstracker/src/main_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -8,7 +7,6 @@ import 'package:firebase_core/firebase_core.dart';
 class AuthController {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   get phoneNumber => null;
   get email => null;
@@ -29,7 +27,6 @@ class AuthController {
     required String middleName,
     required String lastName,
     required String phoneNumber,
-    String? school,
     String? section,
     required String role,
     required String selectedRole,
@@ -48,7 +45,6 @@ class AuthController {
           'lastName': lastName,
           'email': email,
           'phoneNumber': phoneNumber,
-          'school': school ?? '',
           'section': section ?? '',
           'role': role,
           'status': "Pending",
@@ -83,25 +79,16 @@ class AuthController {
           final String role = userData['role']?.toLowerCase() ?? '';
           print(role);
 
-          if (role == 'admin') {
-            // Admins can sign in without confirmation checks.
+          if (role == 'teacher') {
             return _buildUserResponse(userData, role);
-          } else if (role == 'teacher') {
-            // Check confirmed_teachers for teachers.
-            if (userData["status"] == "Confirmed") {
-              return _buildUserResponse(userData, role);
-            } else {
-              return _buildErrorResponse('Teacher is still not confirmed');
-            }
           } else if (role == 'parent' ||
-              role == 'guardian' ||
-              role == 'parent or guardian') {
+              role == 'parent') {
             // Check confirmed_children for parents/guardians.
             if (userData["status"] == "Confirmed") {
               return _buildUserResponse(userData, role);
             } else {
               return _buildErrorResponse(
-                  'Parent/Guardian is still not confirmed');
+                  'Parent is still not confirmed');
             }
           } else {
             await _firebaseAuth.signOut();
@@ -139,7 +126,7 @@ class AuthController {
   Future<Map<String, dynamic>> _handleRoleConfirmation2(
       String uid, Map<String, dynamic> userData, String roleType) async {
     // Check confirmed collection based on the role type (teacher or child).
-    final String confirmationCollection = 'confirmed_${roleType}';
+    final String confirmationCollection = 'confirmed_$roleType';
     QuerySnapshot querySnapshot = await _firestore
         .collection(confirmationCollection)
         .where('userUid', isEqualTo: uid)
@@ -170,45 +157,6 @@ class AuthController {
 
   Map<String, dynamic> _buildErrorResponse(String error) {
     return {'success': false, 'error': error};
-  }
-
-  Future<void> handleGoogleSignIn(BuildContext context) async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return;
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final UserCredential userCredential =
-          await _firebaseAuth.signInWithCredential(credential);
-      final User? user = userCredential.user;
-
-      if (user != null) {
-        DocumentSnapshot userDoc =
-            await _firestore.collection('users').doc(user.uid).get();
-        if (userDoc.exists) {
-          final userData = userDoc.data() as Map<String, dynamic>;
-          final String role = userData['role'] ?? '';
-
-          if (['admin', 'teacher', 'child'].contains(role.toLowerCase())) {
-            await _navigateToMainScreen(context, userData, role);
-          } else {
-            _showSnackBar(context, 'Invalid user role');
-            await _firebaseAuth.signOut();
-          }
-        } else {
-          _showSnackBar(context, 'User data not found');
-          await _firebaseAuth.signOut();
-        }
-      }
-    } catch (e) {
-      _showSnackBar(context, 'Error during Google Sign-In: $e');
-    }
   }
 
   Future<void> _navigateToMainScreen(
@@ -259,7 +207,6 @@ class AuthController {
           'phoneNumber': phoneNumber,
           'parentId': userId,
           'childName': child['name'],
-          'childSchool': child['school'],
           'childSection': child['section'],
           'status': "Pending",
           'createdAt': FieldValue.serverTimestamp(),
@@ -290,8 +237,6 @@ class AuthController {
       if (e.code == 'email-already-in-use') {
         throw Exception(
             'The email address is already in use by another account.');
-      } else if (e.code == 'weak-password') {
-        throw Exception('The password provided is too weak.');
       } else if (e.code == 'invalid-email') {
         throw Exception('The email address is not valid.');
       } else {

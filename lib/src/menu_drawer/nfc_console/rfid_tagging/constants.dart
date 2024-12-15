@@ -1,3 +1,3 @@
-class RFIDTAGGINGCONSTANTS {
-  static const String rfidTitle = 'RFID Tagging';
+class NFCTAGGINGCONSTANTS {
+  static const String rfidTitle = 'NFC Tagging';
 }

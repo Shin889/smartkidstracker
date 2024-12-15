@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:smartkidstracker/src/general_acc/views/signin_screen.dart';
 import 'package:smartkidstracker/src/menu_drawer/account_authentication/pg_acc.dart';
-import 'package:smartkidstracker/src/menu_drawer/account_authentication/teacher_acc.dart';
 import 'package:smartkidstracker/src/menu_drawer/attendance_logs/attendance_logs.dart';
 import 'package:smartkidstracker/src/menu_drawer/attendance_record/presentation/record.dart';
 import 'package:smartkidstracker/src/menu_drawer/nfc_console/console/nfc_console.dart';
 import 'package:smartkidstracker/src/menu_drawer/student_record/presentation/record.dart';
-import 'package:smartkidstracker/src/menu_drawer/teacher_record/presentation/record.dart';
 import 'package:smartkidstracker/src/menu_drawer/announcement/announcement.dart';
 import 'package:smartkidstracker/src/minor_deets/about_screen.dart';
 import 'package:smartkidstracker/src/widgets/appbar/profile/user_profile.dart';
@@ -47,18 +45,12 @@ class _MainScreenState extends State<MainScreen> {
   void _initializeScreens() {
     _screens = [
       Announcement(selectedRole: widget.role),
-      if (widget.role == 'admin') ...[
-        const TeacherAcc(),
-        const StudentRecords(),
-        const TeacherRecordScreen(),
-      ] else if (widget.role == 'teacher') ...[
-        const StudentRecords(),
+      if (widget.role == 'teacher') ...[
+        StudentRecords(),
         PgAccScreen(
             childName: 'Child Name',
             userRole: widget.role,
-            schoolName: '',
             childSection: '',
-            childSchool: '',
             email: '',
             phone: ''),
       ],
@@ -219,16 +211,6 @@ class _MainScreenState extends State<MainScreen> {
                   index: _screens.length - 4,
                 ),
                 _buildDrawerItem(
-                  icon: Icons.nfc,
-                  title: 'NFC Console',
-                  index: _screens.length - 3,
-                ),
-                _buildDrawerItem(
-                  icon: Icons.note,
-                  title: 'RFID LOGS',
-                  index: _screens.length - 2,
-                ),
-                _buildDrawerItem(
                   icon: Icons.info,
                   title: 'About',
                   index: _screens.length - 1,
@@ -250,24 +232,6 @@ class _MainScreenState extends State<MainScreen> {
 
   List<Widget> _buildRoleSpecificItems() {
     switch (widget.role) {
-      case 'admin':
-        return [
-          _buildDrawerItem(
-            icon: Icons.lock,
-            title: 'Teacher Authentication',
-            index: 1,
-          ),
-          _buildDrawerItem(
-            icon: Icons.school,
-            title: 'Student Record',
-            index: 2,
-          ),
-          _buildDrawerItem(
-            icon: Icons.person,
-            title: 'Teacher Record',
-            index: 3,
-          ),
-        ];
       case 'teacher':
         return [
           _buildDrawerItem(
@@ -280,14 +244,16 @@ class _MainScreenState extends State<MainScreen> {
             title: 'Student Record',
             index: 1,
           ),
-        ];
-      case 'parent or guardian':
-        return [
           _buildDrawerItem(
-            icon: Icons.child_care,
-            title: 'Child Information',
-            index: 1,
-          ),
+                  icon: Icons.nfc,
+                  title: 'NFC Console',
+                  index: _screens.length - 3,
+                ),
+                _buildDrawerItem(
+                  icon: Icons.note,
+                  title: 'NFC LOGS',
+                  index: _screens.length - 2,
+                ),
         ];
       default:
         return [];

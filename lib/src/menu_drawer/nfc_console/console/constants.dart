@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class NFCCONTANTS {
-  static const String rfidText = "RFID TAGGING";
+  static const String rfidText = "NFC TAGGING";
   static const String attendanceText = "ATTENDANCE";
   static const IconData nfc = Icons.nfc;
   static const double iconSize = 100;

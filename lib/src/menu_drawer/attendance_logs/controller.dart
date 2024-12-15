@@ -11,8 +11,6 @@ class AttendanceController {
       QuerySnapshot snapshot, String email, String role, String section) {
     if (role == "teacher") {
       return snapshot.docs.where((doc) => doc['section'] == section).toList();
-    } else if (role == "admin") {
-      return snapshot.docs.toList();
     } else {
       return snapshot.docs.where((doc) => doc['email'] == email).toList();
     }

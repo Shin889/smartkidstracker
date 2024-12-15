@@ -70,25 +70,19 @@ class _RfidTaggingState extends State<AttendancePage> {
         focusNode: n!,
         onKeyEvent: (KeyEvent event) {
           if (event.runtimeType.toString() == 'KeyUpEvent') {
-            var values;
+            String values;
             if (event.logicalKey.keyLabel == "Alt Left" ||
                 event.logicalKey.keyLabel == "Enter") {
               int dec = int.parse(valData);
               String xx = dec.toRadixString(16);
               if (xx.length < 8) {
-                values = '0' + xx;
+                values = '0$xx';
               } else {
                 values = xx;
               }
 
               rfidNumber =
-                  int.parse(values.substring(6, 8), radix: 16).toString() +
-                      '-' +
-                      int.parse(values.substring(4, 6), radix: 16).toString() +
-                      '-' +
-                      int.parse(values.substring(2, 4), radix: 16).toString() +
-                      '-' +
-                      int.parse(values.substring(0, 2), radix: 16).toString();
+                  '${int.parse(values.substring(6, 8), radix: 16)}-${int.parse(values.substring(4, 6), radix: 16)}-${int.parse(values.substring(2, 4), radix: 16)}-${int.parse(values.substring(0, 2), radix: 16)}';
               firestoreController.handleRfidScan(
                   context, student, rfidNumber!, type);
               Navigator.pop(context);

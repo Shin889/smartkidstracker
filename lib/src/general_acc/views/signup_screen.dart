@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -26,9 +24,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _email = '';
   String _password = '';
   String _selectedRole = '';
-  String _school = '';
   String _section = '';
-  bool _obscurePassword = true;
 
   @override
   Widget build(BuildContext context) {
@@ -63,9 +59,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Select Role:'),
-        _buildRadioTile('Parent or Guardian'),
+        _buildRadioTile('Parent'),
         _buildRadioTile('Teacher'),
-        _buildRadioTile('Admin'),
       ],
     );
   }
@@ -78,10 +73,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       onChanged: (String? value) {
         setState(() {
           _selectedRole = value!;
-          if (_selectedRole == 'Parent or Guardian') {
-            _school = '';
-            _section = '';
-          } else if (_selectedRole == 'Admin') {
+          if (_selectedRole == 'Parent') {
             _section = '';
           }
         });
@@ -94,6 +86,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       children: [
         _buildTextFormField('First Name', screenWidth, (value) {
           if (value == null || value.isEmpty) return 'Please enter your first name';
+          if (!RegExp(r'^[a-zA-Z]+$').hasMatch(value)) return 'First name can only contain letters';
           return null;
         }, (value) => _firstName = value!),
         const SizedBox(height: 12.0),
@@ -101,6 +94,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         const SizedBox(height: 12.0),
         _buildTextFormField('Last Name', screenWidth, (value) {
           if (value == null || value.isEmpty) return 'Please enter your last name';
+          if (!RegExp(r'^[a-zA-Z]+$').hasMatch(value)) return 'Last name can only contain letters';
           return null;
         }, (value) => _lastName = value!),
         const SizedBox(height: 12.0),
@@ -115,13 +109,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }, (value) => _email = value!),
         const SizedBox(height: 12.0),
         _buildPasswordField(screenWidth),
-        if (_selectedRole == 'Teacher' || _selectedRole == 'Admin') ...[
-          const SizedBox(height: 12.0),
-          _buildTextFormField('School', screenWidth, (value) {
-            if (value == null || value.isEmpty) return 'Please enter the school name';
-            return null;
-          }, (value) => _school = value!),
-        ],
         if (_selectedRole == 'Teacher') ...[
           const SizedBox(height: 12.0),
           _buildTextFormField('Section', screenWidth, (value) {
@@ -156,7 +143,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       validator: (value) {
         if (value == null || value.isEmpty) return 'Please enter your phone number';
-        if (value.length < 10 || value.length > 15) return 'Phone number must be between 10 and 15 digits';
+        if (value.length != 11) return 'Phone number must be exactly 11 digits';
         return null;
       },
       onSaved: (value) => _phoneNumber = value!,
@@ -169,22 +156,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         labelText: 'Password',
         labelStyle: TextStyle(fontSize: screenWidth * 0.035),
         contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-        suffixIcon: IconButton(
-          icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-          onPressed: () {
-            setState(() {
-              _obscurePassword = !_obscurePassword;
-            });
-          },
-        ),
       ),
-      obscureText: _obscurePassword,
       validator: (value) {
         if (value == null || value.isEmpty) return 'Please enter a password';
         if (value.length < 8) return 'Password must be at least 8 characters long';
-        // if (!RegExp(r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$').hasMatch(value)) {
-        //   return 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character';
-        // }
         return null;
       },
       onSaved: (value) => _password = value!,
@@ -213,41 +188,41 @@ class _SignUpScreenState extends State<SignUpScreen> {
         middleName: _middleName,
         lastName: _lastName,
         phoneNumber: _phoneNumber,
-        school: _school,
         section: _section,
-        role: _selectedRole, selectedRole: '',
+        role: _selectedRole,
+        selectedRole: '',
       );
 
       if (userCredential.user != null) {
         if (mounted) {
-          if (_selectedRole == 'Admin') {
+          if (_selectedRole == 'Teacher') {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const SignInScreen()));
-          } else if (_selectedRole == 'Parent or Guardian') {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ParentSignUpScreen(email: _email, phoneNumber: _phoneNumber)));
-          } else if (_selectedRole == 'Teacher') {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const SignInScreen()));
+          } else if (_selectedRole == 'Parent') {
+            Navigator.push(context, MaterialPageRoute(builder:(context)=> ParentSignUpScreen(email:_email, phoneNumber:_phoneNumber)));
           }
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    }
-  }
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:
+         Text('Error:$e')));
+       }
+     }
+   }
 
-  Future<void> _saveTeacherData(String userId) async {
-    try {
-      await FirebaseFirestore.instance.collection('teachers').doc(userId).set({
-        'firstName': _firstName,
-        'middleName': _middleName,
-        'lastName': _lastName,
-        'school': _school,
-        'section': _section,
-      });
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const SignInScreen()));
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save data: $e')));
-    }
-  }
+   Future<void>_saveTeacherData(String userId)
+   async{
+     try{
+       await FirebaseFirestore.instance.collection('teachers').doc(userId).set({
+         'firstName':_firstName,
+         'middleName':_middleName,
+         'lastName':_lastName,
+         'section':_section,
+       });
+       Navigator.pushReplacement(context, MaterialPageRoute(builder:(context)=>const SignInScreen()));
+     }catch(e){
+       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:
+       Text('Failed to save data:$e')));
+     }
+   }
 }

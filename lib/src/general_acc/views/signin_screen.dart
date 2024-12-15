@@ -4,7 +4,7 @@ import 'package:smartkidstracker/src/widgets/button.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
-
+  
   @override
   _SignInScreenState createState() => _SignInScreenState();
 }
@@ -14,6 +14,8 @@ class _SignInScreenState extends State<SignInScreen> {
   final _emailOrPhoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final AuthController _authController = AuthController();
+  bool _isPasswordVisible = false; // For password visibility
+  bool _keepSignedIn = false; // For keeping user signed in
 
   @override
   void dispose() {
@@ -60,6 +62,7 @@ class _SignInScreenState extends State<SignInScreen> {
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double baseFontSize = screenWidth * 0.04;
+    double checkboxSize = screenWidth * 0.05; // Checkbox size for scaling
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -68,6 +71,7 @@ class _SignInScreenState extends State<SignInScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
           child: Column(
             children: [
+              const SizedBox(height: 40), // Added space at the top
               Text(
                 'Smartkids Tracker',
                 style: TextStyle(
@@ -105,6 +109,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     const SizedBox(height: 20),
                     TextFormField(
                       controller: _passwordController,
+                      obscureText: !_isPasswordVisible, // Toggle visibility
                       decoration: InputDecoration(
                         hintText: 'Password',
                         hintStyle: TextStyle(fontSize: screenWidth * 0.035),
@@ -114,14 +119,46 @@ class _SignInScreenState extends State<SignInScreen> {
                           borderRadius: BorderRadius.circular(30),
                           borderSide: BorderSide.none,
                         ),
+                        suffixIcon: IconButton( // Show password icon
+                          icon:
+                              Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
+                          onPressed: () {
+                            setState(() {
+                              _isPasswordVisible = !_isPasswordVisible;
+                            });
+                          },
+                        ),
                       ),
-                      obscureText: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your password';
                         }
                         return null;
                       },
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Transform.scale( // Scale down the checkbox
+                          scale: checkboxSize / 24, // Adjust scale factor as needed
+                          child: Checkbox(
+                            value: _keepSignedIn,
+                            onChanged: (bool? value) {
+                              setState(() {
+                                _keepSignedIn = value!;
+                              });
+                            },
+                          ),
+                        ),
+                        Expanded( // Use Expanded for responsive layout
+                          child: Text(
+                            'Keep me signed in',
+                            style:
+                                TextStyle(fontSize: baseFontSize * 0.9), // Scale text size down
+                            overflow: TextOverflow.ellipsis, // Handles long text gracefully
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -138,126 +175,73 @@ class _SignInScreenState extends State<SignInScreen> {
                 children: [
                   Text(
                     'New user? ',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: screenWidth * 0.03,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style:
+                        TextStyle(color: Colors.black, fontSize: screenWidth * 0.03, fontWeight: FontWeight.bold),
                   ),
                   TextButton(
-                    child: Text(
-                      'Create account >',
-                      style: TextStyle(
-                        color: Colors.purple,
-                        fontSize: screenWidth * 0.035,
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/signup');
-                    },
+                    child:
+                        Text('Create account >', style:
+                            TextStyle(color: Colors.purple, fontSize:
+                                screenWidth * 0.035)),
+                    onPressed:
+                        () { Navigator.pushNamed(context, '/signup'); },
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  const Expanded(child: Divider(color: Colors.grey)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Text(
-                      'Or log in with',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: screenWidth * 0.03,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const Expanded(child: Divider(color: Colors.grey)),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Center(
-                child: ElevatedButton(
-                  onPressed: () => _authController.handleGoogleSignIn(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    shape: const CircleBorder(),
-                    padding: const EdgeInsets.all(20),
-                  ),
-                  child: Icon(
-                    Icons.g_mobiledata,
-                    size: screenWidth * 0.06,
-                    color: Colors.white,
+            const SizedBox(height: 20),
+            Wrap(
+              alignment: WrapAlignment.center,
+              children: [
+                Text(
+                  'By logging in, you agree to our ',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: screenWidth * 0.03,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Center(
-                child: Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 2,
-                  runSpacing: 0,
-                  children: [
-                    Text(
-                      'By logging in, you agree to our ',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: screenWidth * 0.03,
-                        fontWeight: FontWeight.bold,
-                      ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(context, '/user_agreement');
+                  },
+                  child: Text(
+                    'User Agreement',
+                    style: TextStyle(
+                      color: Colors.purple,
+                      fontSize: screenWidth * 0.03,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
                     ),
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        minimumSize: Size.zero,
-                        padding: EdgeInsets.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'User Agreement',
-                        style: TextStyle(
-                          color: Colors.purple,
-                          fontSize: screenWidth * 0.03,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/user_agreement');
-                      },
-                    ),
-                    Text(
-                      ' & ',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: screenWidth * 0.03,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        minimumSize: Size.zero,
-                        padding: EdgeInsets.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'Privacy Policy',
-                        style: TextStyle(
-                          color: Colors.purple,
-                          fontSize: screenWidth * 0.03,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/privacy_policy');
-                      },
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+                Text(
+                  ' & ',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: screenWidth * 0.03,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(context, '/privacy_policy');
+                  },
+                  child: Text(
+                    'Privacy Policy',
+                    style: TextStyle(
+                      color: Colors.purple,
+                      fontSize: screenWidth * 0.03,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+           ], 
+          ), 
+        ), 
+      )
+    ); 
+  } 
 }

@@ -19,12 +19,12 @@ class ConsolePage extends StatefulWidget {
 }
 
 class _ConsolePageState extends State<ConsolePage> {
-  void navigateToRfidTagging(BuildContext context) {
+  void navigateToNfcTagging(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(
           builder: (context) =>
-              RfidTagging(section: widget.section, role: widget.role)),
+              NFCTagging(section: widget.section, role: widget.role)),
     );
   }
 
@@ -48,7 +48,7 @@ class _ConsolePageState extends State<ConsolePage> {
             const SizedBox(height: NFCCONTANTS.sizedBoxHeight),
             TypeButton(
               text: NFCCONTANTS.rfidText,
-              onPressed: () => navigateToRfidTagging(context),
+              onPressed: () => navigateToNfcTagging(context),
               color: NFCCONTANTS.buttonColor,
             ),
             TypeButton(

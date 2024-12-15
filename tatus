@@ -1,0 +1,67 @@
+[33mcommit 2d167755e8c16ea53898111d2adac33730dfea64[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: gbrendez <gbrendez>
+Date:   Wed Dec 4 10:05:10 2024 +0800
+
+    feat: added desktop rfid scanning
+
+[33mcommit a04df4dfcb442fe2b48c29ebd6925028941e34ac[m
+Author: sparklingice099 <sparklingice099@gmail.com>
+Date:   Mon Nov 25 21:05:33 2024 +0800
+
+    feat: added nfc rfid features
+
+[33mcommit bb90f03259c5b4e04ff6538fbd9d2082115009d6[m
+Author: venhurarias <john.arias@digiph.asia>
+Date:   Wed Nov 13 12:07:13 2024 +0800
+
+    authentication and database saving fixed
+
+[33mcommit 952db4fbed9cbaaea12a6a0ff22753226f26fcdd[m
+Author: venhurarias <john.arias@digiph.asia>
+Date:   Tue Nov 12 14:18:55 2024 +0800
+
+    Revert "redo"
+    
+    This reverts commit efccf794a204f6ab75cf036d7251db19bd34dad1.
+
+[33mcommit ca3b186bd680a19abd679801936d9abd921ebcfd[m
+Author: venhurarias <john.arias@digiph.asia>
+Date:   Tue Nov 12 14:17:05 2024 +0800
+
+    add SKU
+
+[33mcommit efccf794a204f6ab75cf036d7251db19bd34dad1[m
+Author: Shin889 <Shienajoy88@gmail.com>
+Date:   Mon Nov 11 22:48:49 2024 +0800
+
+    redo
+
+[33mcommit 0ae0ea44f2fe88f1b4a0da93d051a50355447c2a[m
+Author: Shin889 <Shienajoy88@gmail.com>
+Date:   Mon Nov 11 22:23:28 2024 +0800
+
+    11/11
+
+[33mcommit 2ba4db8015867ef700ab9d91e405d47144ffafa4[m
+Author: Shin889 <Shienajoy88@gmail.com>
+Date:   Mon Nov 11 21:54:43 2024 +0800
+
+    Resolved merge conflicts after stash pop
+
+[33mcommit dabab6de48ca4a3eac553736e5ac803800c4a311[m
+Author: venhurarias <john.arias@digiph.asia>
+Date:   Sat Nov 9 21:09:32 2024 +0800
+
+    updates
+
+[33mcommit 8178ed0bfc8201c0a8fb7157fe68c6a0fa9a9371[m
+Author: Shin889 <Shienajoy88@gmail.com>
+Date:   Sat Nov 9 11:19:56 2024 +0800
+
+    9/11
+
+[33mcommit 463eb6d6aa9dd4205d3205d910a3cab5907fc2f8[m
+Author: Shin889 <Shienajoy88@gmail.com>
+Date:   Sun Sep 29 14:12:34 2024 +0800
+
+    Initial commit

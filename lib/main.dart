@@ -7,8 +7,6 @@ import 'package:smartkidstracker/src/main_screen.dart';
 import 'package:smartkidstracker/src/menu_drawer/announcement/announcement.dart';
 import 'package:smartkidstracker/src/minor_deets/about_screen.dart';
 import 'package:smartkidstracker/src/menu_drawer/attendance_record/presentation/record.dart';
-import 'package:smartkidstracker/src/menu_drawer/account_authentication/teacher_acc.dart';
-import 'package:smartkidstracker/src/menu_drawer/teacher_record/presentation/record.dart';
 import 'package:smartkidstracker/src/menu_drawer/student_record/presentation/record.dart';
 import 'package:smartkidstracker/src/menu_drawer/account_authentication/pg_acc.dart';
 import 'package:smartkidstracker/src/general_acc/views/signin_screen.dart';
@@ -90,15 +88,11 @@ class _MyAppState extends State<MyApp> {
                 section: '',
               ),
           '/about': (context) => const AboutScreen(),
-          '/teacher_auth': (context) => const TeacherAcc(),
-          '/teacher_record': (context) => const TeacherRecordScreen(),
-          '/student_record': (context) => const StudentRecords(),
+          '/student_record': (context) => StudentRecords(),
           '/pg_auth': (context) => PgAccScreen(
               childName: '',
               userRole: '',
-              childSchool: '',
               childSection: '',
-              schoolName: '',
               email: '',
               phone: ''),
           '/signin': (context) => const SignInScreen(),

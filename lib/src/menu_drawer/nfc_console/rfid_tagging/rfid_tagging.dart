@@ -8,21 +8,21 @@ import '../model/student.dart';
 import '../controller/shared.dart';
 import 'shared.dart';
 
-class RfidTagging extends StatefulWidget {
+class NFCTagging extends StatefulWidget {
   final String section;
   final String role;
 
-  const RfidTagging({
+  const NFCTagging({
     super.key,
     required this.section,
     required this.role,
   });
 
   @override
-  State<RfidTagging> createState() => _RfidTaggingState();
+  State<NFCTagging> createState() => _NFCTaggingState();
 }
 
-class _RfidTaggingState extends State<RfidTagging> {
+class _NFCTaggingState extends State<NFCTagging> {
   var firestoreController = FirestoreController();
   String valData = '';
   FocusNode? n;
@@ -73,25 +73,20 @@ class _RfidTaggingState extends State<RfidTagging> {
         focusNode: n!,
         onKeyEvent: (KeyEvent event) {
           if (event.runtimeType.toString() == 'KeyUpEvent') {
-            var values;
+            String values;
             if (event.logicalKey.keyLabel == "Alt Left" ||
                 event.logicalKey.keyLabel == "Enter") {
               int dec = int.parse(valData);
               String xx = dec.toRadixString(16);
               if (xx.length < 8) {
-                values = '0' + xx;
+                values = '0$xx';
               } else {
                 values = xx;
               }
 
               rfidNumber =
-                  int.parse(values.substring(6, 8), radix: 16).toString() +
-                      '-' +
-                      int.parse(values.substring(4, 6), radix: 16).toString() +
-                      '-' +
-                      int.parse(values.substring(2, 4), radix: 16).toString() +
-                      '-' +
-                      int.parse(values.substring(0, 2), radix: 16).toString();
+                  '${int.parse(values.substring(6, 8), radix: 16)}-${int.parse(values.substring(4, 6), radix: 16)}-${int.parse(values.substring(2, 4), radix: 16)}-${int.parse(values.substring(0, 2), radix: 16)}';
+            
               firestoreController.insertRfidNumber(id, rfidNumber!);
               Navigator.pop(context);
               RfidSuccessSnackbar(context).showTaggedSnackbar();
@@ -106,7 +101,7 @@ class _RfidTaggingState extends State<RfidTagging> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(RFIDTAGGINGCONSTANTS.rfidTitle)),
+      appBar: AppBar(title: Text(NFCTAGGINGCONSTANTS.rfidTitle)),
       body: Column(
         children: [
           _buildTextComposer(tappedStudent),

@@ -38,7 +38,7 @@ class RfidSuccessSnackbar {
   void showTaggedSnackbar() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Rfid number has been tagged.'),
+        content: Text('NFC number has been tagged.'),
         backgroundColor: Colors.green,
       ),
     );

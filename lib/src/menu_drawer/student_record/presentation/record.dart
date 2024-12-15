@@ -1,5 +1,27 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+
+Future<Map<String, dynamic>?> getUserDetails() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return null;
+
+  final userDoc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .get();
+
+  return userDoc.data();
+}
+
+Future<List<Map<String, dynamic>>> getChildrenInSection(String section) async {
+  final querySnapshot = await FirebaseFirestore.instance
+      .collection('children')
+      .where('childSection', isEqualTo: section)
+      .get();
+
+  return querySnapshot.docs.map((doc) => doc.data()).toList();
+}
 
 class StudentRecords extends StatefulWidget {
   const StudentRecords({super.key});
@@ -9,104 +31,102 @@ class StudentRecords extends StatefulWidget {
 }
 
 class _StudentRecordsState extends State<StudentRecords> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  List<Student> studentRecords = [];
-  String? userRole = 'admin'; 
+  late Future<List<Map<String, dynamic>>> _childrenFuture;
+  String _searchQuery = '';
+  List<Map<String, dynamic>> _filteredChildren = [];
 
   @override
   void initState() {
     super.initState();
-    fetchStudentRecords(); // Fetch records from Firestore when the screen initializes
+    _childrenFuture = _loadChildren();
   }
 
-  // Function to fetch student records from Firestore
-  Future<void> fetchStudentRecords() async {
-    try {
-      print("Fetching student records...");
-      QuerySnapshot snapshot = await _firestore.collection('confirmed_children').get();
-
-      if (snapshot.docs.isEmpty) {
-        print("No student records found.");
-        setState(() {
-          studentRecords = [];
-        });
-        return;
-      }
-
-      // Map the snapshot to a list of Student objects
-      List<Student> fetchedRecords = snapshot.docs.map((doc) {
-        return Student(
-          name: '${doc['childName']}', // Assuming these fields exist
-          section: userRole == 'admin' ? doc['section'] : 'N/A', // Show section for admin, hide for teacher
-        );
-      }).toList();
-
-      setState(() {
-        studentRecords = fetchedRecords;
-        print('Fetched records: $studentRecords');
-      });
-    } catch (e) {
-      print('Error fetching student records: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching student records: $e')),
-      );
+  Future<List<Map<String, dynamic>>> _loadChildren() async {
+    final userDetails = await getUserDetails();
+    if (userDetails == null || userDetails['role'] != 'Teacher') {
+      throw Exception('Not authorized or no role assigned.');
     }
+    final section = userDetails['section'];
+    return getChildrenInSection(section);
+  }
+
+  void _filterChildren(String query, List<Map<String, dynamic>> children) {
+    setState(() {
+      _searchQuery = query.toLowerCase();
+      _filteredChildren = children
+          .where((child) =>
+              (child['childName'] ?? '').toLowerCase().contains(_searchQuery))
+          .toList();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: studentRecords.isEmpty
-            ? Center(
-                child: Text(
-                  'No student records found.',
-                  style: TextStyle(fontSize: 16.0),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _childrenFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('No children found.'));
+          }
+
+          final children = snapshot.data!..sort((a, b) {
+            return (a['childName'] ?? '').compareTo(b['childName'] ?? '');
+          });
+
+          if (_searchQuery.isEmpty) {
+            _filteredChildren = children;
+          }
+
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                TextField(
+                  onChanged: (query) => _filterChildren(query, children),
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.search),
+                    hintText: 'Search by name...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                 ),
-              )
-            : ListView.builder(
-                itemCount: studentRecords.length,
-                itemBuilder: (context, index) {
-                  Student student = studentRecords[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(
-                          student.name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16.0,
+                SizedBox(height: 10),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _filteredChildren.length,
+                    itemBuilder: (context, index) {
+                      final child = _filteredChildren[index];
+                      return Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.symmetric(vertical: 5),
+                        child: ListTile(
+                          title: Text(
+                            child['childName'] ?? 'Unknown Name',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Email: ${child['email'] ?? 'N/A'}'),
+                              Text('Phone: ${child['phoneNumber'] ?? 'N/A'}'),
+                            ],
                           ),
                         ),
-                        subtitle: userRole == 'admin'
-                            ? Padding(
-                                padding: const EdgeInsets.only(top: 4.0),
-                                child: Text(
-                                  'Section: ${student.section ?? 'N/A'}',
-                                  style: TextStyle(fontSize: 14.0),
-                                ),
-                              )
-                            : null,
-                      ),
-                    ),
-                  );
-                },
-              ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
-}
-
-class Student {
-  final String name;
-  final String? section;
-
-  Student({
-    required this.name,
-    this.section,
-  });
 }

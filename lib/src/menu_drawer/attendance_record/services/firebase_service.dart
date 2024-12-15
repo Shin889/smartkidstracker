@@ -32,9 +32,7 @@ class FirebaseService {
 
   Future<List<AttendanceRecord>> getAttendanceRecordsByRole(String userId, String role, {int? limit}) async {
     try {
-      if (role == 'Admin') {
-        return await getAllAttendanceRecords(limit);
-      } else if (role == 'Teacher') {
+      if (role == 'Teacher') {
         final sectionId = await getSectionIdByTeacher(userId);
         return await getAttendanceRecordsBySection(sectionId, limit: limit);
       } else if (role == 'Parent') {

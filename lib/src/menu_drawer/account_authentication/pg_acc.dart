@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 class PgAccScreen extends StatefulWidget {
   final String childName;
   final String userRole;
-  final String childSchool;
   final String childSection;
   final String email;
   final String phone;
@@ -13,10 +12,9 @@ class PgAccScreen extends StatefulWidget {
     super.key,
     required this.childName,
     required this.userRole,
-    required this.childSchool,
     required this.childSection,
     required this.email,
-    required this.phone, required String schoolName,
+    required this.phone,
   });
 
   @override
@@ -50,7 +48,6 @@ class _PgAccScreenState extends State<PgAccScreen> {
               final data = pendingChildren[index].data() as Map<String, dynamic>;
 
               final childName = data['childName'] as String? ?? 'N/A';
-              final childSchool = data['childSchool'] as String? ?? 'N/A';
               final childSection = data['childSection'] as String? ?? 'N/A';
               final createdAt = data['createdAt'] != null
                   ? (data['createdAt'] as Timestamp).toDate().toLocal().toString()
@@ -63,13 +60,8 @@ class _PgAccScreenState extends State<PgAccScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Child Details',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
                       const SizedBox(height: 8),
                       Text('Name: $childName'),
-                      Text('School: $childSchool'),
                       Text('Section: $childSection'),
                       Text('Created At: $createdAt'),
                       const SizedBox(height: 16),
@@ -97,11 +89,53 @@ class _PgAccScreenState extends State<PgAccScreen> {
       ),
       const SizedBox(width: 8),
       ElevatedButton(
-        onPressed: () => _handleConfirmation(docId, data, false),
+        onPressed: () => _showConfirmationDialog(docId), // Show confirmation dialog
         style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
         child: const Text('Reject'),
       ),
     ];
+  }
+
+  Future<void> _showConfirmationDialog(String docId) async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Rejection'),
+          content: const Text('Are you sure you want to reject this application? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                await _handleRejection(docId); // Handle rejection and delete document
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Reject'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _handleRejection(String docId) async {
+    try {
+      // Delete the document from Firestore
+      await FirebaseFirestore.instance.collection('children').doc(docId).delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Application rejected and deleted')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting application: $e')),
+      );
+    }
   }
 
   Future<void> _handleConfirmation(String docId, Map<String, dynamic> data, bool confirmed) async {
@@ -117,7 +151,6 @@ class _PgAccScreenState extends State<PgAccScreen> {
           await pendingChildRef.update({'status': 'Confirmed'});
           final parentRef = FirebaseFirestore.instance.collection('users').doc(parentId);
           await parentRef.update({'status': 'Confirmed'});
-
         }
       } else {
         await FirebaseFirestore.instance.collection('children').doc(docId).update({
