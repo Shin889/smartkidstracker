@@ -17,7 +17,7 @@ class ParentSignUpScreen extends StatefulWidget {
 }
 
 class _ParentSignUpScreenState extends State<ParentSignUpScreen> {
-  final List<Map<String, String>> _children = [{'name': '', 'school': '', 'section': ''}];
+  final List<Map<String, String>> _children = [{'name': '', 'section': ''}];
   final AuthController _authController = AuthController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isSubmitting = false;
@@ -38,24 +38,52 @@ class _ParentSignUpScreenState extends State<ParentSignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Child Sign Up')),
+      appBar: AppBar(
+        title: const Text('Child Sign Up'),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue, Colors.green],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              Expanded(child: _buildChildrenList()),
-              ElevatedButton(
+              Expanded(
+                child: _buildChildrenList(),
+              ),
+              const SizedBox(height: 16.0),
+              ElevatedButton.icon(
                 onPressed: _addAnotherChild,
-                child: const Text('Add Another Child'),
+                icon: const Icon(Icons.add),
+                label: const Text('Add Another Child'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
               ),
               const SizedBox(height: 16.0),
               _isSubmitting
                   ? const CircularProgressIndicator()
-                  : ElevatedButton(
+                  : ElevatedButton.icon(
                       onPressed: _submitSignUpRequest,
-                      child: const Text('Submit'),
+                      icon: const Icon(Icons.check),
+                      label: const Text('Submit'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
                     ),
             ],
           ),
@@ -68,25 +96,48 @@ class _ParentSignUpScreenState extends State<ParentSignUpScreen> {
     return ListView.builder(
       itemCount: _children.length,
       itemBuilder: (context, index) {
-        return Column(
-          children: [
-            TextFormField(
-              decoration: const InputDecoration(labelText: 'Child Name'),
-              validator: (value) => value == null || value.isEmpty ? "Please enter the child's name" : null,
-              onSaved: (value) => _children[index]['name'] = value ?? '',
+        return Card(
+          margin: const EdgeInsets.only(bottom: 16.0),
+          elevation: 4.0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Child ${index + 1}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16.0,
+                  ),
+                ),
+                const SizedBox(height: 8.0),
+                TextFormField(
+                  decoration: const InputDecoration(labelText: 'First Name'),
+                  validator: (value) => value == null || value.isEmpty ? "Please enter the child's first name" : null,
+                  onSaved: (value) => _children[index]['firstName'] = value ?? '',
+                ),
+                TextFormField(
+                  decoration: const InputDecoration(labelText: 'Middle Name'),
+                  validator: (value) => value == null || value.isEmpty ? "Please enter the child's middle name" : null,
+                  onSaved: (value) => _children[index]['middleName'] = value ?? '',
+                ),
+                TextFormField(
+                  decoration: const InputDecoration(labelText: 'Last Name'),
+                  validator: (value) => value == null || value.isEmpty ? "Please enter the child's last name" : null,
+                  onSaved: (value) => _children[index]['lastName'] = value ?? '',
+                ),
+                TextFormField(
+                  decoration: const InputDecoration(labelText: 'Child Section'),
+                  validator: (value) => value == null || value.isEmpty ? "Please enter the child's section" : null,
+                  onSaved: (value) => _children[index]['section'] = value ?? '',
+                ),
+              ],
             ),
-            TextFormField(
-              decoration: const InputDecoration(labelText: 'Child School'),
-              validator: (value) => value == null || value.isEmpty ? "Please enter the child's school" : null,
-              onSaved: (value) => _children[index]['school'] = value ?? '',
-            ),
-            TextFormField(
-              decoration: const InputDecoration(labelText: 'Child Section'),
-              validator: (value) => value == null || value.isEmpty ? "Please enter the child's section" : null,
-              onSaved: (value) => _children[index]['section'] = value ?? '',
-            ),
-            const SizedBox(height: 16.0),
-          ],
+          ),
         );
       },
     );
@@ -94,7 +145,7 @@ class _ParentSignUpScreenState extends State<ParentSignUpScreen> {
 
   void _addAnotherChild() {
     setState(() {
-      _children.add({'name': '', 'school': '', 'section': ''});
+      _children.add({'firstName': '', 'middleName': '', 'lastName': '', 'section': ''});
     });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('New child section added')),
@@ -137,24 +188,21 @@ class _ParentSignUpScreenState extends State<ParentSignUpScreen> {
   }
 
   Future<void> savePendingChildData({
-  required String email,
-  required String phoneNumber,
-  required List<Map<String, String>> children,
-}) async {
-  // Get the user ID of the current authenticated user
-  User? currentUser = FirebaseAuth.instance.currentUser;
-  if (currentUser == null) {
-    throw Exception('User not authenticated');
-  }
+    required String email,
+    required String phoneNumber,
+    required List<Map<String, String>> children,
+  }) async {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      throw Exception('User not authenticated');
+    }
 
-  String userId = currentUser.uid;
-
-  // Call the `updateUserChildren` method with all required arguments
-  await _authController.updateUserChildren(
-    userId,
-    email,
-    phoneNumber,
-    children,
+    String userId = currentUser.uid;
+    await _authController.updateUserChildren(
+      userId,
+      email,
+      phoneNumber,
+      children,
     );
   }
 }

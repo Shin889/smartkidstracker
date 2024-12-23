@@ -84,13 +84,14 @@ class _MyAppState extends State<MyApp> {
               firstName: '', lastName: '', section: '', role: '', email: ''),
           '/announcement': (context) => const Announcement(selectedRole: ''),
           '/attendance': (context) => AttendanceScreen(
-                userRole: '',
-                section: '',
+                userDocId: '',
               ),
           '/about': (context) => const AboutScreen(),
           '/student_record': (context) => StudentRecords(),
           '/pg_auth': (context) => PgAccScreen(
-              childName: '',
+              firstName: '',
+              middleName: '',
+              lastName: '',
               userRole: '',
               childSection: '',
               email: '',

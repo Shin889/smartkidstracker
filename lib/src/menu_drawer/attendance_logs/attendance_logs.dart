@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:smartkidstracker/src/menu_drawer/attendance_logs/constants.dart';
 import 'package:smartkidstracker/src/menu_drawer/attendance_logs/controller.dart';
-
 import 'shared.dart';
 
 class AttendanceLogs extends StatefulWidget {

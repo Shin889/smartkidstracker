@@ -62,7 +62,7 @@ class _NFCTaggingState extends State<NFCTagging> {
 
   void scanRfid(BuildContext context, Student student) async {
     tappedStudent = student.id;
-    NfcController(context).showNfcDialog(student.name);
+    NfcController(context).showNfcDialog(student.firstName, student.middleName, student.lastName);
     startNFCReading(student.id);
   }
 

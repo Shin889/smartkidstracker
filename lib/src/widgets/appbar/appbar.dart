@@ -40,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
           flexibleSpace: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.purple, Colors.orange],
+                colors: [Colors.blue, Colors.green],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),

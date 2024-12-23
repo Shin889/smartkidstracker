@@ -20,45 +20,65 @@ class AuthController {
     }
   }
 
-  Future<UserCredential> signUp({
-    required String email,
-    required String password,
-    required String firstName,
-    required String middleName,
-    required String lastName,
-    required String phoneNumber,
-    String? section,
-    required String role,
-    required String selectedRole,
-  }) async {
-    try {
-      UserCredential userCredential =
-          await _firebaseAuth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+Future<UserCredential> signUp({
+  required String email,
+  required String password,
+  required String firstName,
+  required String middleName,
+  required String lastName,
+  required String phoneNumber,
+  String? section,
+  required String role,
+  required String selectedRole,
+  required List<Map<String, String>> children, // List of child data
+}) async {
+  try {
+    UserCredential userCredential =
+        await _firebaseAuth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
 
-      if (userCredential.user != null) {
-        await _firestore.collection('users').doc(userCredential.user!.uid).set({
-          'firstName': firstName,
-          'middleName': middleName,
-          'lastName': lastName,
-          'email': email,
-          'phoneNumber': phoneNumber,
-          'section': section ?? '',
-          'role': role,
+    if (userCredential.user != null) {
+      // Add parent data to users collection
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        'firstName': firstName,
+        'middleName': middleName,
+        'lastName': lastName,
+        'email': email,
+        'phoneNumber': phoneNumber,
+        'section': section ?? '',
+        'role': role,
+        'status': "Pending",
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Add children data to children collection
+      CollectionReference childrenCollection =
+          _firestore.collection('children');
+      for (var child in children) {
+        await childrenCollection.add({
+          'parentId': userCredential.user!.uid, // Link child to parent
+          'firstName': child['firstName'],
+          'middleName': child['middleName'],
+          'lastName': child['lastName'],
+          'section': child['section'],
           'status': "Pending",
+          'email': email, // Optional
+          'phoneNumber': phoneNumber, // Optional
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
-
-      return userCredential;
-    } on FirebaseAuthException catch (e) {
-      throw Exception('Sign-up failed: ${e.message}');
-    } catch (e) {
-      throw Exception('An unexpected error occurred: $e');
     }
+
+    return userCredential;
+  } on FirebaseAuthException catch (e) {
+    throw Exception('Sign-up failed: ${e.message}');
+  } catch (e) {
+    throw Exception('An unexpected error occurred: $e');
   }
+}
+
 
   Future<Map<String, dynamic>> signInWithEmailAndPassword(
       String email, String password) async {
@@ -79,10 +99,9 @@ class AuthController {
           final String role = userData['role']?.toLowerCase() ?? '';
           print(role);
 
-          if (role == 'teacher') {
+          if (role == 'teacher' || role == 'admin') {
             return _buildUserResponse(userData, role);
-          } else if (role == 'parent' ||
-              role == 'parent') {
+          } else if (role == 'parent') {
             // Check confirmed_children for parents/guardians.
             if (userData["status"] == "Confirmed") {
               return _buildUserResponse(userData, role);
@@ -206,8 +225,10 @@ class AuthController {
           'email': email,
           'phoneNumber': phoneNumber,
           'parentId': userId,
-          'childName': child['name'],
-          'childSection': child['section'],
+          'firstName': child['firstName'],
+          'middleName': child['middleName'],
+          'lastName': child['lastName'],
+          'section': child['section'],
           'status': "Pending",
           'createdAt': FieldValue.serverTimestamp(),
         });

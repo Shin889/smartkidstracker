@@ -14,10 +14,18 @@ Future<Map<String, dynamic>?> getUserDetails() async {
   return userDoc.data();
 }
 
+Future<List<Map<String, dynamic>>> getAllChildren() async {
+  final querySnapshot = await FirebaseFirestore.instance
+      .collection('children')
+      .get();
+
+  return querySnapshot.docs.map((doc) => doc.data()).toList();
+}
+
 Future<List<Map<String, dynamic>>> getChildrenInSection(String section) async {
   final querySnapshot = await FirebaseFirestore.instance
       .collection('children')
-      .where('childSection', isEqualTo: section)
+      .where('section', isEqualTo: section)
       .get();
 
   return querySnapshot.docs.map((doc) => doc.data()).toList();
@@ -43,11 +51,20 @@ class _StudentRecordsState extends State<StudentRecords> {
 
   Future<List<Map<String, dynamic>>> _loadChildren() async {
     final userDetails = await getUserDetails();
-    if (userDetails == null || userDetails['role'] != 'Teacher') {
+    if (userDetails == null) {
+      throw Exception('User not logged in.');
+    }
+
+    if (userDetails['role'] == 'Admin') {
+      // Admin can see all children
+      return getAllChildren();
+    } else if (userDetails['role'] == 'Teacher') {
+      // Teachers see children in their section
+      final section = userDetails['section'];
+      return getChildrenInSection(section);
+    } else {
       throw Exception('Not authorized or no role assigned.');
     }
-    final section = userDetails['section'];
-    return getChildrenInSection(section);
   }
 
   void _filterChildren(String query, List<Map<String, dynamic>> children) {
@@ -55,7 +72,9 @@ class _StudentRecordsState extends State<StudentRecords> {
       _searchQuery = query.toLowerCase();
       _filteredChildren = children
           .where((child) =>
-              (child['childName'] ?? '').toLowerCase().contains(_searchQuery))
+              '${child['firstName']} ${child['middleName']} ${child['lastName'] ?? ''}'
+                  .toLowerCase()
+                  .contains(_searchQuery))
           .toList();
     });
   }
@@ -67,15 +86,15 @@ class _StudentRecordsState extends State<StudentRecords> {
         future: _childrenFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No children found.'));
+            return const Center(child: Text('No children found.'));
           }
 
           final children = snapshot.data!..sort((a, b) {
-            return (a['childName'] ?? '').compareTo(b['childName'] ?? '');
+            return (a['firstName'] ?? '').compareTo(b['firstName'] ?? '');
           });
 
           if (_searchQuery.isEmpty) {
@@ -89,14 +108,14 @@ class _StudentRecordsState extends State<StudentRecords> {
                 TextField(
                   onChanged: (query) => _filterChildren(query, children),
                   decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.search),
+                    prefixIcon: const Icon(Icons.search),
                     hintText: 'Search by name...',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Expanded(
                   child: ListView.builder(
                     itemCount: _filteredChildren.length,
@@ -107,12 +126,13 @@ class _StudentRecordsState extends State<StudentRecords> {
                         margin: const EdgeInsets.symmetric(vertical: 5),
                         child: ListTile(
                           title: Text(
-                            child['childName'] ?? 'Unknown Name',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            '${child['firstName'] ?? ''} ${child['middleName'] ?? ''} ${child['lastName'] ?? ''}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Text('Section: ${child['section'] ?? 'N/A'}'),
                               Text('Email: ${child['email'] ?? 'N/A'}'),
                               Text('Phone: ${child['phoneNumber'] ?? 'N/A'}'),
                             ],

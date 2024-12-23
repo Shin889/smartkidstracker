@@ -45,18 +45,20 @@ class _MainScreenState extends State<MainScreen> {
   void _initializeScreens() {
     _screens = [
       Announcement(selectedRole: widget.role),
-      if (widget.role == 'teacher') ...[
+      if (widget.role == 'teacher' || widget.role == 'admin') ...[
         StudentRecords(),
         PgAccScreen(
-            childName: 'Child Name',
-            userRole: widget.role,
+            userRole: '',
+            firstName: '',
+            middleName: '',
+            lastName: '',
             childSection: '',
             email: '',
-            phone: ''),
+            phone: '',
+        ),
       ],
       AttendanceScreen(
-        userRole: '',
-        section: '',
+        userDocId: '', 
       ),
       ConsolePage(
         section: widget.section,
@@ -232,6 +234,29 @@ class _MainScreenState extends State<MainScreen> {
 
   List<Widget> _buildRoleSpecificItems() {
     switch (widget.role) {
+      case 'admin':
+      return [
+          _buildDrawerItem(
+            icon: Icons.lock,
+            title: 'Child Authentication',
+            index: 2,
+          ),
+          _buildDrawerItem(
+            icon: Icons.school,
+            title: 'Student Record',
+            index: 1,
+          ),
+          _buildDrawerItem(
+                  icon: Icons.nfc,
+                  title: 'NFC Console',
+                  index: _screens.length - 3,
+                ),
+                _buildDrawerItem(
+                  icon: Icons.note,
+                  title: 'NFC LOGS',
+                  index: _screens.length - 2,
+                ),
+        ];
       case 'teacher':
         return [
           _buildDrawerItem(

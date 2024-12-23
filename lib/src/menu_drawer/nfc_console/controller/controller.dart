@@ -38,7 +38,7 @@ class NfcController {
     );
   }
 
-  void showNfcDialog(String student) {
+  void showNfcDialog(String student, String middleName, String lastName) {
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -92,7 +92,7 @@ class FirestoreController {
   List<Student> getAllStudents(QuerySnapshot snapshot, String section) {
     return snapshot.docs.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
-      return data['childSection'] == section;
+      return data['section'] == section;
     }).map((doc) {
       final data = doc.data() as Map<String, dynamic>;
       return Student.fromMap(data, doc.id);
@@ -106,22 +106,22 @@ class FirestoreController {
     });
   }
 
-  Future<void> recordAttendance(
-      Student student, String type, String rfid) async {
-    try {
-      await FirebaseFirestore.instance.collection('attendance').add({
-        'name': student.name,
-        'section': student.section,
-        'school': student.school,
-        'email': student.email,
-        'rfidNumber': rfid,
-        'attendance': type,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      debugPrint('Error inserting attendance: $e');
-    }
+Future<void> recordAttendance(
+    Student student, String type, String rfid) async {
+  try {
+    await FirebaseFirestore.instance.collection('attendance').add({
+      'name': '${student.firstName} ${student.middleName} ${student.lastName}'.trim(),
+      'section': student.section,
+      'email': student.email,
+      'rfidNumber': rfid,
+      'attendance': type,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+  } catch (e) {
+    debugPrint('Error inserting attendance: $e');
   }
+}
+
 
   Future<void> handleRfidScan(
       BuildContext context, Student student, String rfid, String type) async {

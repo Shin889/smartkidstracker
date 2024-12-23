@@ -18,9 +18,8 @@ class StudentCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(CONTROLLERCONSTANTS.nfc, size: CONTROLLERCONSTANTS.iconSize),
-              Text(student.name, style: CONTROLLERCONSTANTS.rfidTextStyle),
+              Text(student.firstName, style: CONTROLLERCONSTANTS.rfidTextStyle),
               Text(student.section),
-              Text(student.school),
             ],
           ),
         ),
@@ -39,6 +38,30 @@ class AttendanceSuccessSnackbar {
       SnackBar(
         content: Text('Attendance has been recorded.'),
         backgroundColor: Colors.green,
+      ),
+    );
+  }
+}
+
+class AttendanceErrorSnackbar {
+  final BuildContext context;
+
+  AttendanceErrorSnackbar(this.context);
+
+  void showTaggedSnackbar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Attendance has not been recorded.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void showErrorSnackbar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('An error occurred while processing attendance.'),
+        backgroundColor: Colors.red,
       ),
     );
   }

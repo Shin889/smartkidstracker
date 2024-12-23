@@ -33,6 +33,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sign Up'),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue, Colors.green],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -190,7 +199,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         phoneNumber: _phoneNumber,
         section: _section,
         role: _selectedRole,
-        selectedRole: '',
+        selectedRole: '', children: [],
       );
 
       if (userCredential.user != null) {

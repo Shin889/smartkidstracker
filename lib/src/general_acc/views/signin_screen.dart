@@ -181,7 +181,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   TextButton(
                     child:
                         Text('Create account >', style:
-                            TextStyle(color: Colors.purple, fontSize:
+                            TextStyle(color: Colors.blue, fontSize:
                                 screenWidth * 0.035)),
                     onPressed:
                         () { Navigator.pushNamed(context, '/signup'); },
@@ -207,7 +207,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   child: Text(
                     'User Agreement',
                     style: TextStyle(
-                      color: Colors.purple,
+                      color: Colors.blue,
                       fontSize: screenWidth * 0.03,
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.underline,
@@ -229,7 +229,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   child: Text(
                     'Privacy Policy',
                     style: TextStyle(
-                      color: Colors.purple,
+                      color: Colors.blue,
                       fontSize: screenWidth * 0.03,
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.underline,

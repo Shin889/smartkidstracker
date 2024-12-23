@@ -2,7 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class PgAccScreen extends StatefulWidget {
-  final String childName;
+  final String firstName;
+  final String middleName;
+  final String lastName;
   final String userRole;
   final String childSection;
   final String email;
@@ -10,7 +12,9 @@ class PgAccScreen extends StatefulWidget {
 
   const PgAccScreen({
     super.key,
-    required this.childName,
+    required this.firstName,
+    required this.middleName,
+    required this.lastName,
     required this.userRole,
     required this.childSection,
     required this.email,
@@ -47,7 +51,9 @@ class _PgAccScreenState extends State<PgAccScreen> {
             itemBuilder: (context, index) {
               final data = pendingChildren[index].data() as Map<String, dynamic>;
 
-              final childName = data['childName'] as String? ?? 'N/A';
+              final firstName = data['firstName'] as String? ?? 'N/A';
+              final middleName = data['middleName'] as String? ?? 'N/A';
+              final lastName = data['lastName'] as String? ?? 'N/A';
               final childSection = data['childSection'] as String? ?? 'N/A';
               final createdAt = data['createdAt'] != null
                   ? (data['createdAt'] as Timestamp).toDate().toLocal().toString()
@@ -61,7 +67,9 @@ class _PgAccScreenState extends State<PgAccScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 8),
-                      Text('Name: $childName'),
+                      Text('First Name: $firstName'),
+                      Text('Middle Name: $middleName'),
+                      Text('Last Name: $lastName'),
                       Text('Section: $childSection'),
                       Text('Created At: $createdAt'),
                       const SizedBox(height: 16),

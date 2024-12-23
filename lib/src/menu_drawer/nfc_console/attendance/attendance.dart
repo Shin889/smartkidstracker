@@ -25,7 +25,7 @@ class AttendancePage extends StatefulWidget {
 class _RfidTaggingState extends State<AttendancePage> {
   var firestoreController = FirestoreController();
   Student tappedStudent = Student(
-      id: '', name: '', rfidNumber: '', section: '', email: '', school: '');
+      id: '', firstName: '', middleName: '', lastName: '', rfidNumber: '', section: '', email: '');
   String tappedType = '';
   String valData = '';
   String? rfidNumber;
@@ -59,7 +59,10 @@ class _RfidTaggingState extends State<AttendancePage> {
   Future<void> scanRfid(Student studentModel, String type) async {
     tappedStudent = studentModel;
     tappedType = type;
-    NfcController(context).showNfcDialog(studentModel.name);
+    NfcController(context).showNfcDialog(
+      studentModel.firstName, 
+      studentModel.middleName, 
+      studentModel.lastName);
     startNFCReading(studentModel, type);
   }
 
@@ -183,7 +186,7 @@ class _RfidTaggingState extends State<AttendancePage> {
                         return StudentCard(
                           student: student,
                           onTap: () =>
-                              showTapInTapOutDialog(student.name, student),
+                              showTapInTapOutDialog(student.firstName, student),
                         );
                       },
                     );
@@ -194,4 +197,4 @@ class _RfidTaggingState extends State<AttendancePage> {
           ],
         ));
   }
-}
+} 
