@@ -83,7 +83,7 @@ class _AnnouncementState extends State<Announcement> {
   }
 
   Widget? _buildFloatingActionButton() {
-    if (widget.selectedRole == 'Admin' || widget.selectedRole == 'Staff') {
+    if (widget.selectedRole == 'teacher' || widget.selectedRole =='admin') {
       return FloatingActionButton(
         backgroundColor: Colors.blueAccent,
         onPressed: () => _showPostCreationDialog(context),
@@ -120,17 +120,11 @@ class _AnnouncementState extends State<Announcement> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ListTile(
-            leading: CircleAvatar(
-              backgroundImage: NetworkImage(
-                postData['authorProfilePic'] ?? 'https://via.placeholder.com/150',
-              ),
-            ),
             title: Text(postData['authorName'] ?? 'Anonymous'),
             subtitle: Text(
               '${postDate.toLocal()}',
               style: const TextStyle(color: Colors.grey),
             ),
-            trailing: _buildPostOptionsButton(post.id, postData),
           ),
           if (postData['mediaUrl'] != null) Image.network(postData['mediaUrl']),
           Padding(
@@ -146,17 +140,7 @@ class _AnnouncementState extends State<Announcement> {
     );
   }
 
-  Widget? _buildPostOptionsButton(String postId, Map<String, dynamic> postData) {
-    if (postData['authorId'] == _auth.currentUser?.uid) {
-      return IconButton(
-        icon: const Icon(Icons.more_vert),
-        onPressed: () => _showPostOptionsDialog(context, postId, postData),
-      );
-    }
-    return null;
-  }
-
-  Widget _buildLikeButton(String postId, List<dynamic> likes) {
+  Widget? _buildLikeButton(String postId, List<dynamic> likes) {
     final currentUserId = _auth.currentUser?.uid;
     final isLiked = likes.contains(currentUserId);
 
@@ -201,22 +185,6 @@ class _AnnouncementState extends State<Announcement> {
                       decoration: const InputDecoration(labelText: 'Content'),
                     ),
                     const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      value: selectedGroup,
-                      hint: const Text('Select Target Group'),
-                      items: ['Group A', 'Group B', 'All Users'].map((group) {
-                        return DropdownMenuItem<String>(
-                          value: group,
-                          child: Text(group),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedGroup = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
                     ElevatedButton.icon(
                       onPressed: () => _pickImage(setState, (media) {
                         setState(() {
@@ -248,7 +216,6 @@ class _AnnouncementState extends State<Announcement> {
                       title: titleController.text,
                       content: contentController.text,
                       mediaFile: selectedMedia,
-                      targetGroup: selectedGroup ?? 'All Users',
                     );
                     Navigator.of(context).pop();
                   },
@@ -270,70 +237,54 @@ class _AnnouncementState extends State<Announcement> {
   }
 
   Future<void> _createPost({
-    required String title,
-    required String content,
-    File? mediaFile,
-    required String targetGroup,
-  }) async {
-    try {
-      final user = _auth.currentUser;
-      if (user != null) {
-        String? mediaUrl;
+  required String title,
+  required String content,
+  File? mediaFile,
+}) async {
+  try {
+    final user = _auth.currentUser;
+    if (user != null) {
+      String? mediaUrl;
 
-        if (mediaFile != null) {
-          mediaUrl = await _uploadMedia(mediaFile);
+      if (mediaFile != null) {
+        mediaUrl = await _uploadMedia(mediaFile);
+        if (mediaUrl == null) {
+          print('Error: Media URL is null');
+          return;
         }
-
-        await _firestore.collection('posts').add({
-          'title': title,
-          'content': content,
-          'authorId': user.uid,
-          'authorName': user.displayName,
-          'authorProfilePic': user.photoURL,
-          'mediaUrl': mediaUrl,
-          'targetGroup': targetGroup,
-          'createdAt': FieldValue.serverTimestamp(),
-          'likes': [],
-        });
       }
-    } catch (e) {
-      print('Error creating post: $e');
-    }
-  }
 
-  Future<String?> _uploadMedia(File mediaFile) async {
-    try {
+      await _firestore.collection('posts').add({
+        'title': title,
+        'content': content,
+        'authorId': user.uid,
+        'authorName': user.displayName,
+        'mediaUrl': mediaUrl,
+        'createdAt': FieldValue.serverTimestamp(),
+        'likes': [],
+      });
+    }
+  } catch (e) {
+    print('Error creating post: $e');
+  }
+}
+
+
+ Future<String?> _uploadMedia(File mediaFile) async {
+  try {
+    final user = _auth.currentUser;
+    if (user != null) {
       final fileName = mediaFile.path.split('/').last;
       final storageRef = FirebaseStorage.instance.ref().child('posts/$fileName');
       await storageRef.putFile(mediaFile);
       return await storageRef.getDownloadURL();
-    } catch (e) {
-      print('Error uploading media: $e');
+    } else {
+      print('Error: User is not authenticated.');
       return null;
     }
+  } catch (e) {
+    print('Error uploading media: $e');
+    return null;
   }
-
-  void _showPostOptionsDialog(BuildContext context, String postId, Map<String, dynamic> postData) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Post Options'),
-          actions: [
-            TextButton(
-              child: const Text('Delete Post'),
-              onPressed: () async {
-                await _firestore.collection('posts').doc(postId).delete();
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        );
-      },
-    );
-  }
+}
 }
