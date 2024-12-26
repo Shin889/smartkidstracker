@@ -51,11 +51,12 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAoxbr2DTijagxq5Dnjb3vm6UCgP3TxTuM',
-    appId: '1:224966435149:android:f9008b6f07107025fbd704',
-    messagingSenderId: '224966435149',
-    projectId: 'smartkidstracker-35ac5',
-    storageBucket: 'smartkidstracker-35ac5.appspot.com',
+    apiKey: 'AIzaSyCqbmdeyoP03vC2ql66xqPEpO9hhE3MR7Q',
+    appId: '1:777993590363:android:c38f695f49d0f014c7117e',
+    messagingSenderId: '777993590363',
+    projectId: 'smartkidstracker-b3468',
+    databaseURL: 'https://smartkidstracker-b3468-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'smartkidstracker-b3468.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

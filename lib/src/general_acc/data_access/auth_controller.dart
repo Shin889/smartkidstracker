@@ -106,6 +106,7 @@ Future<UserCredential> signUp({
             if (userData["status"] == "Confirmed") {
               return _buildUserResponse(userData, role);
             } else {
+
               return _buildErrorResponse(
                   'Parent is still not confirmed');
             }

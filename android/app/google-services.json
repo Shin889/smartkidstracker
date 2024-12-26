@@ -1,52 +1,27 @@
 {
   "project_info": {
-    "project_number": "224966435149",
-    "firebase_url": "https://smartkidstracker-35ac5-default-rtdb.asia-southeast1.firebasedatabase.app",
-    "project_id": "smartkidstracker-35ac5",
-    "storage_bucket": "smartkidstracker-35ac5.appspot.com"
+    "project_number": "777993590363",
+    "firebase_url": "https://smartkidstracker-b3468-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "smartkidstracker-b3468",
+    "storage_bucket": "smartkidstracker-b3468.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:224966435149:android:f9008b6f07107025fbd704",
+        "mobilesdk_app_id": "1:777993590363:android:c38f695f49d0f014c7117e",
         "android_client_info": {
           "package_name": "com.example.smartkidstracker"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "224966435149-qln9g4batfu3avj98fgmm0mf8uru66kn.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.smartkidstracker",
-            "certificate_hash": "f129c2bad0d963aeed632d314babaee7d14eef1e"
-          }
-        },
-        {
-          "client_id": "224966435149-koguv46rmplfolrqiiueo681avveqlbf.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAoxbr2DTijagxq5Dnjb3vm6UCgP3TxTuM"
+          "current_key": "AIzaSyCqbmdeyoP03vC2ql66xqPEpO9hhE3MR7Q"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "224966435149-koguv46rmplfolrqiiueo681avveqlbf.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "224966435149-fr6qoavl9m80epsu4cf40lb01dji5vl2.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.smartkidstracker"
-              }
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

@@ -85,7 +85,7 @@ class _AnnouncementState extends State<Announcement> {
   Widget? _buildFloatingActionButton() {
     if (widget.selectedRole == 'teacher' || widget.selectedRole =='admin') {
       return FloatingActionButton(
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Colors.blueAccent, 
         onPressed: () => _showPostCreationDialog(context),
         child: const Icon(Icons.add),
       );
@@ -116,26 +116,39 @@ class _AnnouncementState extends State<Announcement> {
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ListTile(
-            title: Text(postData['authorName'] ?? 'Anonymous'),
-            subtitle: Text(
-              '${postDate.toLocal()}',
-              style: const TextStyle(color: Colors.grey),
+
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16,vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(postData['authorName'] ?? 'Anonymous'),
+                    Text(
+                      '${postDate.toLocal()}',
+                      style: const TextStyle(color: Colors.grey),
+                    )
+                  ],
+                )
+              ],
             ),
-          ),
-          if (postData['mediaUrl'] != null) Image.network(postData['mediaUrl']),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text(postData['content'] ?? 'No Content'),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: _buildLikeButton(post.id, postData['likes'] ?? []),
-          ),
-        ],
+            SizedBox(height: 20,),
+            Text(postData['title'] ?? 'No Title', style: TextStyle(fontWeight: FontWeight.bold),),
+            SizedBox(height: 10,),
+
+            Text(postData['content'] ?? 'No Content', textAlign: TextAlign.justify,),
+            if (postData['mediaUrl'] != null) Image.network(postData['mediaUrl']),
+            if (postData['mediaUrl'] != null) SizedBox(height: 10,),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: _buildLikeButton(post.id, postData['likes'] ?? []),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -276,7 +289,9 @@ class _AnnouncementState extends State<Announcement> {
     if (user != null) {
       final fileName = mediaFile.path.split('/').last;
       final storageRef = FirebaseStorage.instance.ref().child('posts/$fileName');
+      print("HEHEH");
       await storageRef.putFile(mediaFile);
+      print("HAHAHA");
       return await storageRef.getDownloadURL();
     } else {
       print('Error: User is not authenticated.');
