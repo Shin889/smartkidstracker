@@ -41,13 +41,14 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAMv1qo2yUFDipXIdQOiccpv_7vkkX0VtA',
-    appId: '1:224966435149:web:dc5aee26c099bbe3fbd704',
-    messagingSenderId: '224966435149',
-    projectId: 'smartkidstracker-35ac5',
-    authDomain: 'smartkidstracker-35ac5.firebaseapp.com',
-    storageBucket: 'smartkidstracker-35ac5.appspot.com',
-    measurementId: 'G-ZQTV3D0VQF',
+    apiKey: 'AIzaSyBk34jl8pq4ZBuwac4jhpewcH2Ej9gd5kA',
+    appId: '1:777993590363:web:6a8051b4e6851494c7117e',
+    messagingSenderId: '777993590363',
+    projectId: 'smartkidstracker-b3468',
+    authDomain: 'smartkidstracker-b3468.firebaseapp.com',
+    databaseURL: 'https://smartkidstracker-b3468-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'smartkidstracker-b3468.firebasestorage.app',
+    measurementId: 'G-YR6WR3H57N',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -78,12 +79,14 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAMv1qo2yUFDipXIdQOiccpv_7vkkX0VtA',
-    appId: '1:224966435149:web:5596b090b687b0abfbd704',
-    messagingSenderId: '224966435149',
-    projectId: 'smartkidstracker-35ac5',
-    authDomain: 'smartkidstracker-35ac5.firebaseapp.com',
-    storageBucket: 'smartkidstracker-35ac5.appspot.com',
-    measurementId: 'G-8Z81JFBH8W',
+    apiKey: 'AIzaSyBk34jl8pq4ZBuwac4jhpewcH2Ej9gd5kA',
+    appId: '1:777993590363:web:cb8ce441f7a2aa96c7117e',
+    messagingSenderId: '777993590363',
+    projectId: 'smartkidstracker-b3468',
+    authDomain: 'smartkidstracker-b3468.firebaseapp.com',
+    databaseURL: 'https://smartkidstracker-b3468-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'smartkidstracker-b3468.firebasestorage.app',
+    measurementId: 'G-BMPNY13KNV',
   );
+
 }
