@@ -1,3 +1,4 @@
+import 'package:date_picker_timeline/date_picker_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -16,67 +17,124 @@ class AttendanceScreen extends StatefulWidget {
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
   String searchQuery = "";
+  final DatePickerController _controller = DatePickerController();
+  DateTime selectedDate = DateTime.now();
 
-  void filterAttendance(String query, List<Map<String, dynamic>> attendanceData) {
+  void filterAttendance(String query) {
     setState(() {
       searchQuery = query;
     });
   }
 
-  List<Map<String, dynamic>> getFilteredData(
-      List<Map<String, dynamic>> attendanceData) {
-    if (searchQuery.isEmpty) {
-      return attendanceData;
-    } else {
-      return attendanceData.where((record) {
-        final name = record['name']?.toLowerCase() ?? '';
-
-        return name.contains(searchQuery.toLowerCase());
-      }).toList();
-    }
-  }
-
   Map<String, Map<String, dynamic>> getLatestAttendance(
       List<QueryDocumentSnapshot> docs) {
-    final Map<String, Map<String, dynamic>> latestRecords = {};
+    final Map<String, Map<String, dynamic>> latestTapInRecords = {};
+    final Map<String, Map<String, dynamic>> latestTapOutRecords = {};
 
     for (var doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
       final email = data['email'];
+      final attendanceType = data['attendance'];
       final timestamp = (data['timestamp'] as Timestamp).toDate();
 
-      if (!latestRecords.containsKey(email) ||
-          (latestRecords[email]!['timestamp'] as Timestamp)
-              .toDate()
-              .isBefore(timestamp)) {
-        data['docId'] = doc.id;
-        latestRecords[email] = data;
+      if (attendanceType == 'tap-in') {
+        if (!latestTapInRecords.containsKey(email) ||
+            (latestTapInRecords[email]!['timestamp'] as Timestamp)
+                .toDate()
+                .isBefore(timestamp)) {
+          data['docId'] = doc.id;
+          latestTapInRecords[email] = data;
+        }
+      } else if (attendanceType == 'tap-out') {
+        if (!latestTapOutRecords.containsKey(email) ||
+            (latestTapOutRecords[email]!['timestamp'] as Timestamp)
+                .toDate()
+                .isBefore(timestamp)) {
+          data['docId'] = doc.id;
+          latestTapOutRecords[email] = data;
+        }
       }
     }
 
-    return latestRecords;
+    // Combine latest tap-in and tap-out records
+    final Map<String, Map<String, dynamic>> combinedRecords = {};
+    latestTapInRecords.forEach((email, tapInData) {
+      combinedRecords[email] = {
+        'tap-in': tapInData,
+        'tap-out': latestTapOutRecords[email],
+      };
+    });
+
+    return combinedRecords;
+  }
+
+  List<Map<String, dynamic>> getFilteredData(
+      List<Map<String, dynamic>> combinedAttendanceData) {
+    if (searchQuery.isEmpty) {
+      return combinedAttendanceData;
+    } else {
+      return combinedAttendanceData
+          .where((record) {
+        final tapInName =
+            record['tap-in']?['name']?.toLowerCase() ?? '';
+        final tapOutName =
+            record['tap-out']?['name']?.toLowerCase() ?? '';
+
+        return tapInName.contains(searchQuery.toLowerCase()) ||
+            tapOutName.contains(searchQuery.toLowerCase());
+      })
+          .toList();
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Scroll to the initial selected date after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _controller.animateToDate(selectedDate);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
+
     return Scaffold(
       body: Column(
         children: [
+          DatePicker(
+            DateTime.now().subtract(const Duration(days: 365)),
+            daysCount: 366,
+            controller: _controller,
+            height: 100,
+            initialSelectedDate: selectedDate,
+            selectionColor: Colors.black,
+            selectedTextColor: Colors.white,
+            onDateChange: (date) {
+              setState(() {
+                selectedDate = date;
+              });
+            },
+          ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
               decoration: const InputDecoration(
-                labelText: 'Search by Name or Date',
+                labelText: 'Search by Name',
                 border: OutlineInputBorder(),
               ),
-              onChanged: (query) => filterAttendance(query, []),
+              onChanged: filterAttendance,
             ),
           ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('attendance')
-                  .orderBy('email')
+                  .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+                  .where('timestamp', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
                   .orderBy('timestamp', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
@@ -95,9 +153,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 }
 
                 // Fetch and process attendance data from Firestore
-                final attendanceData =
+                final combinedAttendanceData =
                 getLatestAttendance(snapshot.data!.docs).values.toList();
-                final filteredData = getFilteredData(attendanceData);
+                final filteredData = getFilteredData(combinedAttendanceData);
 
                 if (filteredData.isEmpty) {
                   return const Center(
@@ -115,63 +173,74 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     columnWidths: const {
                       0: FlexColumnWidth(3),
                       1: FlexColumnWidth(2),
+                      2: FlexColumnWidth(2),
                     },
                     children: [
                       const TableRow(
-                        decoration: BoxDecoration(color: Colors.lightBlueAccent),
+                        decoration:
+                        BoxDecoration(color: Colors.lightBlueAccent),
                         children: [
                           Padding(
                             padding: EdgeInsets.all(8.0),
-                            child: Text('Name',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white)),
+                            child: Text(
+                              'Name',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
+                            ),
                           ),
                           Padding(
                             padding: EdgeInsets.all(8.0),
-                            child: Text('Status',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white)),
+                            child: Text(
+                              'Tap-In Time',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
+                            ),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Text(
+                              'Tap-Out Time',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
+                            ),
                           ),
                         ],
                       ),
                       ...filteredData.map((record) {
-                        final name = record['name'] ?? 'Unknown';
-                        final timestamp =
-                        (record['timestamp'] as Timestamp).toDate();
-                        final formattedDate =
-                        DateFormat('yyyy-MM-dd HH:mm:ss').format(timestamp);
+                        final tapInRecord = record['tap-in'];
+                        final tapOutRecord = record['tap-out'];
+
+                        final name = tapInRecord?['name'] ??
+                            tapOutRecord?['name'] ??
+                            'Unknown';
+                        final tapInTime = tapInRecord != null
+                            ? DateFormat('HH:mm:ss').format(
+                            (tapInRecord['timestamp'] as Timestamp)
+                                .toDate())
+                            : '--';
+                        final tapOutTime = tapOutRecord != null
+                            ? DateFormat('HH:mm:ss').format(
+                            (tapOutRecord['timestamp'] as Timestamp)
+                                .toDate())
+                            : '--';
 
                         return TableRow(
                           children: [
                             Padding(
                               padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(name),
-                                  Text(
-                                    "Section: ${record['section'] ?? 'Unknown Section'}",
-                                    style: const TextStyle(color: Colors.blueGrey),
-                                  ),
-                                ],
-                              ),
+                              child: Text(name),
                             ),
-                            record['attendance'] == 'tap-out'
-                                ?  Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                  ),
-                                  Text(formattedDate, style: TextStyle(fontSize: 10),)
-                                ],
-                              ),
-                            )
-                                : const SizedBox(),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(tapInTime),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(tapOutTime),
+                            ),
                           ],
                         );
                       }),
