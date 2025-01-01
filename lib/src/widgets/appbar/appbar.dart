@@ -103,6 +103,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildDrawerItem('Student Record', () {
             _updateTitle('Student Record');
           }),
+          _buildDrawerItem('Add Child', () {
+            _updateTitle('Add Child');
+          }),
         ],
       ),
     );

@@ -9,6 +9,7 @@ import 'package:smartkidstracker/src/menu_drawer/announcement/announcement.dart'
 import 'package:smartkidstracker/src/minor_deets/about_screen.dart';
 import 'package:smartkidstracker/src/widgets/appbar/profile/user_profile.dart';
 import 'package:smartkidstracker/src/minor_deets/help_screen.dart';
+import 'package:smartkidstracker/src/menu_drawer/add_child/add_child.dart';
 
 class MainScreen extends StatefulWidget {
   final String firstName;
@@ -70,6 +71,8 @@ class _MainScreenState extends State<MainScreen> {
         email: widget.email,
       ),
       const AboutScreen(),
+      if (widget.role == 'parent') // Only add AddChildScreen for parents
+        AddChildScreen(email: widget.email, phoneNumber: ''),
     ];
   }
 
@@ -207,6 +210,12 @@ class _MainScreenState extends State<MainScreen> {
                   index: 0,
                 ),
                 ..._buildRoleSpecificItems(),
+                if (widget.role == 'parent') // Only show Add Child for parents
+                  _buildDrawerItem(
+                    icon: Icons.person_add,
+                    title: 'Add Child',
+                    index: _screens.length - 1,
+                  ),
                 _buildDrawerItem(
                   icon: Icons.calendar_today,
                   title: 'Attendance Record',
@@ -215,14 +224,13 @@ class _MainScreenState extends State<MainScreen> {
                 _buildDrawerItem(
                   icon: Icons.info,
                   title: 'About',
-                  index: _screens.length - 1,
+                  index: _screens.length - 2,
                 ),
                 Divider(),
                 _buildDrawerItem(
                   icon: Icons.exit_to_app,
                   title: 'Sign Out',
                   onTap: () => _showSignoutConfirmationDialog(context),
-                  color: Colors.red,
                 ),
               ],
             ),
@@ -235,7 +243,7 @@ class _MainScreenState extends State<MainScreen> {
   List<Widget> _buildRoleSpecificItems() {
     switch (widget.role) {
       case 'admin':
-      return [
+        return [
           _buildDrawerItem(
             icon: Icons.lock,
             title: 'Child Authentication',
@@ -247,15 +255,10 @@ class _MainScreenState extends State<MainScreen> {
             index: 1,
           ),
           _buildDrawerItem(
-                  icon: Icons.nfc,
-                  title: 'NFC Console',
-                  index: _screens.length - 3,
-                ),
-                _buildDrawerItem(
-                  icon: Icons.note,
-                  title: 'NFC LOGS',
-                  index: _screens.length - 2,
-                ),
+            icon: Icons.note,
+            title: 'NFC LOGS',
+            index: _screens.length - 2,
+          ),
         ];
       case 'teacher':
         return [
@@ -270,34 +273,25 @@ class _MainScreenState extends State<MainScreen> {
             index: 1,
           ),
           _buildDrawerItem(
-                  icon: Icons.nfc,
-                  title: 'NFC Console',
-                  index: _screens.length - 3,
-                ),
-                _buildDrawerItem(
-                  icon: Icons.note,
-                  title: 'NFC LOGS',
-                  index: _screens.length - 2,
-                ),
+            icon: Icons.nfc,
+            title: 'NFC Console',
+            index: _screens.length - 3,
+          ),
+          _buildDrawerItem(
+            icon: Icons.note,
+            title: 'NFC LOGS',
+            index: _screens.length - 2,
+          ),
         ];
       default:
         return [];
     }
   }
 
-  Widget _buildDrawerItem({
-    required IconData icon,
-    required String title,
-    int? index,
-    VoidCallback? onTap,
-    Color color = Colors.black87,
-  }) {
+  Widget _buildDrawerItem({required IconData icon, required String title, int? index, VoidCallback? onTap}) {
     return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(
-        title,
-        style: TextStyle(color: color, fontSize: 16),
-      ),
+      leading: Icon(icon),
+      title: Text(title),
       onTap: () {
         if (onTap != null) {
           onTap();
@@ -306,8 +300,6 @@ class _MainScreenState extends State<MainScreen> {
           Navigator.pop(context); // Close the drawer
         }
       },
-      dense: true,
-      visualDensity: VisualDensity.compact,
     );
   }
 }

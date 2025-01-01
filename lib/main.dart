@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:smartkidstracker/src/menu_drawer/add_child/add_child.dart';
 import 'firebase_options.dart';
 import 'package:smartkidstracker/src/main_screen.dart';
 import 'package:smartkidstracker/src/menu_drawer/announcement/announcement.dart';
@@ -80,7 +81,7 @@ class _MyAppState extends State<MyApp> {
         theme: ThemeData(primarySwatch: Colors.blue),
         initialRoute: '/signin',
         routes: {
-          '/': (context) => const MainScreen(
+          '/': (context) => MainScreen(
               firstName: '', lastName: '', section: '', role: '', email: ''),
           '/announcement': (context) => const Announcement(selectedRole: ''),
           '/attendance': (context) => AttendanceScreen(
@@ -100,6 +101,7 @@ class _MyAppState extends State<MyApp> {
           '/signup': (context) => const SignUpScreen(),
           '/privacy_policy': (context) => const PrivacyPolicy(),
           '/user_agreement': (context) => const UserAgreement(),
+          '/add_child': (context) => AddChildScreen(email: '', phoneNumber: ''),
           '/main': (context) {
             final args = ModalRoute.of(context)?.settings.arguments as Map?;
             return MainScreen(
